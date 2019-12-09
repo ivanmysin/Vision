@@ -28,7 +28,7 @@ centers_x = centers_x[0] # !!!!!
 centers_y = centers_y[0] # !!!!!
 # image = np.zeros_like(image) + 100
 # image[:, :Len_x//2] = 200
-res_image, mean_intensity, onlygrad, mean_x, mean_y, abs_steps, angle_steps = lib.make_preobr(image, centers_x, centers_y, x, y)
+res_image, mean_intensity, onlygrad, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB = lib.make_preobr(image, centers_x, centers_y, x, y)
 
 # res_image, mean_intensity = lib.make_succades(image, centers_x, centers_y, x, y, weghts_sigm)
 
@@ -60,15 +60,20 @@ ax[1, 0].scatter(mean_x_255, mean_y_255, color="g", s=5.5)
 ax[1, 1].imshow(res_image, cmap="gray", vmin=0, vmax=255)
 ax[1, 1].set_title("Восстановленное изображение")
 ax[1, 1].scatter(center_x_255, center_y_255, color="red", s=0.5)
-ax[1, 1].scatter(mean_x_255, mean_y_255, color="g", s=5.5)
+ax[1, 1].scatter(mean_x_255, mean_y_255, color="r", s=6.5)
 
 xx, yy = lib.get_rete(abs_steps, angle_steps, Len_x, Len_y)
 
 for x, y in zip(xx, yy):
     ax[1, 1].plot(x, y, color="b")
 
-for x, y in zip(mean_x_255, mean_y_255):
-    ax[1, 1].arrow(x, y, 10, 10, width=0.1, color="c", head_width=1)
+# for x, y in zip(mean_x_255, mean_y_255):
+#     ax[1, 1].arrow(x, y, 10, 10, width=0.1, color="c", head_width=1)
+
+
+for x_AB, y_AB in zip(xs_AB, ys_AB):
+    x_AB, y_AB = lib.rel2pix(x_AB, y_AB, Len_x, Len_y)
+    ax[1, 1].plot(x_AB, y_AB, color="c")
 
 ax[1, 1].set_xlim(0, Len_x)
 ax[1, 1].set_ylim(Len_y, 0)
