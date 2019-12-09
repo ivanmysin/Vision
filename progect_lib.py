@@ -225,14 +225,18 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
 
 
     if grad_y == 0:
-        x = np.array([x_mean, x_mean])
-        y = np.sqrt( np.array([abs_min, abs_max])**2  - x_mean)
+        x = np.asarray([x_mean, x_mean])
+
+        tmp = np.array([abs_min, abs_max])**2  - x**2
+        x = x[tmp >= 0 ]
+        tmp = tmp[tmp >= 0 ]
+        y = np.sqrt(tmp)
 
         x = np.append(x, x)
         y = np.append(y, -y)
 
         x = np.append(x, [x_mean, x_mean])
-        y = np.append(y, np.tan([fi_min, fi_max]))
+        y = np.append(y, x[0:2]*np.tan([fi_min, fi_max]))
 
     else:
         tan_fi_grad = grad_x / grad_y

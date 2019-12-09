@@ -16,7 +16,7 @@ Len_y, Len_x = image.shape
 x, y = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
 weghts_sigm = 0.5
 
-image = -100 * x + 100 * y + 100
+image = -100 * x + 0 * y + 100
 
 centers_x = np.array( [101, 126, 103, 148, 102, 144] ) # + 100 # / Len_x * 2 - 1 # np.array( [-0.12, -0.2] ) # np.array( [-0.5, 0.5] ) #
 centers_y = np.array( [101, 127, 100, 103, 140, 139] ) # / Len_y * 2 # np.array( [0.5, -0.5] )  # np.array( [0.5, 0.6] )   #
