@@ -44,20 +44,15 @@ def make_preobr(image, center_x, center_y, x, y):
 
 
 
-    abs_steps = np.geomspace(np.min(abs_pix), np.max(abs_pix), 5)  #  np.linspace(np.min(abs_pix), np.max(abs_pix)+0.0001, 30)
-    angle_steps = np.linspace(-np.pi, np.pi, 6)
-    # angle_steps[2] = -np.pi / 2
-    # mask = np.zeros_like(image, dtype=float)
+    abs_steps = np.linspace(np.min(abs_pix), np.max(abs_pix)+0.0001, 5) #  np.geomspace(np.min(abs_pix)+0.0000001, np.max(abs_pix), 8)  #
+    angle_steps = np.linspace(-np.pi, np.pi+0.0001, 12)
+    # mask = np.zeros_like(image)
 
     res_image = np.zeros_like(image, dtype=float)
     mean_intensity = np.zeros_like(image, dtype=float)
     onlygrad = np.zeros_like(image, dtype=float)
 
-
-    # fi_mins = []
-    # fi_maxs = []
-    # r_mins = []
-    # r_maxs = []
+    res_xys = []
     mean_intensity_list = []
 
     mean_xs = np.empty((0), dtype=np.float)
@@ -67,27 +62,25 @@ def make_preobr(image, center_x, center_y, x, y):
     for idx1, ab_step in enumerate(abs_steps[:-1]):
         for idx2, an_step in enumerate(angle_steps[:-1]):
             chosen_pix = (abs_pix >= ab_step) & (abs_pix < abs_steps[idx1+1]) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
+
             if np.sum(chosen_pix) == 0:
                 continue
+
+            # mask[chosen_pix] = np.random.randint(0, 255)
 
             mean_xs = np.append(mean_xs, np.mean(x[chosen_pix]))
             mean_ys = np.append(mean_ys, np.mean(y[chosen_pix]))
 
             mean_intensity[chosen_pix] = np.mean(image[chosen_pix])
-            # fi_mins.append(an_step)
-            # fi_maxs.append(angle_steps[idx2+1])
-            # r_mins.append(ab_step)
-            # r_maxs.append(abs_steps[idx1+1])
             mean_intensity_list.append(np.mean(image[chosen_pix]))
 
 
 
-    # fi_mins = np.asarray(fi_mins)
-    # fi_maxs = np.asarray(fi_maxs)
-    # r_mins = np.asarray(r_mins)
-    # r_maxs = np.asarray(r_maxs)
+    cols_x_A, cols_y_A, cols_x_B, cols_y_B = [], [], [], []
     mean_intensity_list = np.asarray(mean_intensity_list)
     xs_AB, ys_AB = [], []
+
+    # print(mean_intensity_list.size, np.unique(mean_intensity_list).size)
 
 
     for idx1, ab_step in enumerate(abs_steps[:-1]):
@@ -96,43 +89,63 @@ def make_preobr(image, center_x, center_y, x, y):
             chosen_pix = (abs_pix >= ab_step) & (abs_pix < abs_steps[idx1+1]) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
 
 
-
             if np.sum(chosen_pix) == 0:
                 continue
             elif np.sum(chosen_pix) < 2:
-                # mean_grad_x = 0
-                # mean_grad_y = 0
-                # grad_angle = None
                 mean_intens = np.mean(image[chosen_pix])
                 res_image[chosen_pix] = mean_intens
                 continue
             else:
                 mean_grad_x = np.mean(grad_x[chosen_pix])
                 mean_grad_y = np.mean(grad_y[chosen_pix])
-                # grad_angle = np.arctan2( mean_grad_y, mean_grad_x ) # np.rad2deg( )
                 mean_intens = np.mean(image[chosen_pix])
-
 
 
             mean_x = np.mean(x[chosen_pix])
             mean_y = np.mean(y[chosen_pix])
 
-            #            get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_mean)
             x_AB, y_AB = get_distance2AB(an_step, angle_steps[idx2+1], ab_step, abs_steps[idx1+1], mean_grad_x, mean_grad_y, mean_x, mean_y)
             xs_AB.append(x_AB)
             ys_AB.append(y_AB)
 
 
-            res_image[chosen_pix] = mean_intens + mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
-            onlygrad[chosen_pix] = mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
+            val_A, val_B, col_x_A, col_y_A, col_x_B, col_y_B = get_AB_value(x_AB, y_AB, x, y, mean_intensity, chosen_pix)
+
+
+            cols_x_A.append(col_x_A)
+            cols_y_A.append(col_y_A)
+            cols_x_B.append(col_x_B)
+            cols_y_B.append(col_y_B)
+
+            # if  idx1+2 != abs_steps.size:
+            #     print("last")
 
 
 
+            if val_A - val_B != 0:
+                mean_x = (val_A*x_AB[0] - val_B*x_AB[1] + mean_intens*(x_AB[1] - x_AB[0]) ) / (val_A - val_B)
+                mean_y = (val_A*y_AB[0] - val_B*y_AB[1] + mean_intens*(y_AB[1] - y_AB[0]) ) / (val_A - val_B)
 
-    res_image[res_image < 0] = 0
-    res_image[res_image > 255] = 255
+                res_image[chosen_pix] = mean_intens + mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
+                onlygrad[chosen_pix] = mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
 
-    return res_image, mean_intensity, onlygrad, mean_xs, mean_ys, abs_steps, angle_steps, xs_AB, ys_AB
+                res_image_tmp = res_image[chosen_pix]
+                res_image_tmp[res_image_tmp <= val_A] = val_A
+                res_image_tmp[res_image_tmp >= val_B] = val_B
+                res_image[chosen_pix] = res_image_tmp
+
+            else:
+                # print("Hello")
+                res_image[chosen_pix] = 0
+                # print(mean_x)
+                # print(mean_y)
+
+                # res_image[chosen_pix] = mean_intens
+
+
+
+    cols_AB = [cols_x_A, cols_y_A, cols_x_B, cols_y_B, mean_xs, mean_ys]
+    return res_image, mean_intensity, onlygrad, mean_xs, mean_ys, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB, res_xys # , mask
 
 
 
@@ -222,8 +235,6 @@ def get_rete(abs_steps, angle_steps, Len_x, Len_y):
 
 def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_mean):
 
-
-
     if grad_y == 0:
         x = np.asarray([x_mean, x_mean])
 
@@ -267,13 +278,6 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
 
     x = x.ravel()
 
-    # angl = np.arctan(tan_fi_grad)
-    # angl = 2*np.pi - angl
-    # xn = x * np.cos(angl) + y * np.sin(angl)
-    # yn = y * np.cos(angl) - x * np.sin(angl)
-    # print(xn)
-    # print(yn)
-
     dists_arg = np.argsort( (x - x_mean)**2 + (y - y_mean)**2 )
 
     x_res = x[dists_arg[0:2]]
@@ -286,11 +290,36 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
     if np.abs( mean_A_dist + mean_B_dist - AB_dist) >= 0.001:
         x_res = x[dists_arg[ np.array([0, 2], dtype=int) ]]
         y_res = y[dists_arg[ np.array([0, 2], dtype=int) ]]
-        print("Wrong distance!")
+        # print("Wrong distance!")
 
 
+    # print("g", grad_x, grad_y)
+    U = grad_x * (x_res - x_mean) + grad_y * (y_res - y_mean)
+    Uarg = np.argsort(U)
+    x_res = x_res[Uarg]
+    y_res = y_res[Uarg]
 
+    #
 
 
     return x_res, y_res
 
+def get_AB_value(x_AB, y_AB, pix_x, pix_y, mean_intensity, chosen_pix):
+
+    chosen_pix_invert = np.logical_not(chosen_pix)
+
+    for idx in range(2):
+
+        res_idx = np.argmin( (x_AB[idx] - pix_x[chosen_pix_invert])**2 + (y_AB[idx] - pix_y[chosen_pix_invert])**2 )
+
+        if idx == 0:
+            col_x_A = pix_x[chosen_pix_invert][res_idx]
+            col_y_A = pix_y[chosen_pix_invert][res_idx]
+            value_A = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
+        else:
+            col_x_B = pix_x[chosen_pix_invert][res_idx]
+            col_y_B = pix_y[chosen_pix_invert][res_idx]
+            value_B = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
+
+    # print(value_A, value_B)
+    return value_A, value_B, col_x_A, col_y_A, col_x_B, col_y_B
