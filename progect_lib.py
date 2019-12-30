@@ -121,7 +121,7 @@ def make_preobr(image, center_x, center_y, x, y):
             ys_AB.append(y_AB)
 
 
-            val_A, val_B, col_x_A, col_y_A, col_x_B, col_y_B = get_AB_value(x_AB, y_AB, x, y, mean_intensity, chosen_pix)
+            val_A, val_B, col_x_A, col_y_A, col_x_B, col_y_B = get_AB_value(x_AB, y_AB, x, y, mean_intensity, chosen_pix, image)
 
 
             cols_x_A.append(col_x_A)
@@ -145,16 +145,16 @@ def make_preobr(image, center_x, center_y, x, y):
 
 
             if val_A - val_B != 0:
-                # mean_x = (val_A*x_AB[0] - val_B*x_AB[1] + mean_intens*(x_AB[1] - x_AB[0]) ) / (val_A - val_B)
-                # mean_y = (val_A*y_AB[0] - val_B*y_AB[1] + mean_intens*(y_AB[1] - y_AB[0]) ) / (val_A - val_B)
+                mean_x = (val_A*x_AB[0] - val_B*x_AB[1] + mean_intens*(x_AB[1] - x_AB[0]) ) / (val_A - val_B)
+                mean_y = (val_A*y_AB[0] - val_B*y_AB[1] + mean_intens*(y_AB[1] - y_AB[0]) ) / (val_A - val_B)
 
                 res_image[chosen_pix] = mean_intens + mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
                 onlygrad[chosen_pix] = mean_grad_x * (x[chosen_pix] - mean_x) + mean_grad_y * (y[chosen_pix] - mean_y)
 
-                # res_image_tmp = res_image[chosen_pix]
-                # res_image_tmp[res_image_tmp <= val_A] = val_A
-                # res_image_tmp[res_image_tmp >= val_B] = val_B
-                # res_image[chosen_pix] = res_image_tmp
+                res_image_tmp = res_image[chosen_pix]
+                res_image_tmp[res_image_tmp <= val_A] = val_A
+                res_image_tmp[res_image_tmp >= val_B] = val_B
+                res_image[chosen_pix] = res_image_tmp
 
             else:
                 print("Ua and Ub are equal!")
@@ -324,37 +324,41 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
             x_res[i] = ( (xx - x_mean) * np.sign(yy) + yy*x_mean - xx*y_mean ) / (yy - y_mean)
             y_res[i] = np.sign(yy)
 
-
-
     # print("g", grad_x, grad_y)
     U = grad_x * (x_res - x_mean) + grad_y * (y_res - y_mean)
     Uarg = np.argsort(U)
     x_res = x_res[Uarg]
     y_res = y_res[Uarg]
 
-
-
-
     return x_res, y_res
 
-def get_AB_value(x_AB, y_AB, pix_x, pix_y, mean_intensity, chosen_pix):
+def get_AB_value(x_AB, y_AB, pix_x, pix_y, mean_intensity, chosen_pix, original_image):
 
-
-
-    chosen_pix_invert = np.logical_not(chosen_pix) # np.ones_like(pix_x, dtype=np.bool) #
+    chosen_pix_invert = np.logical_not(chosen_pix)
 
     for idx in range(2):
 
-        res_idx = np.argmin( (x_AB[idx] - pix_x[chosen_pix_invert])**2 + (y_AB[idx] - pix_y[chosen_pix_invert])**2 )
+        if np.abs(x_AB[idx]) == 1 or np.abs(y_AB[idx]) == 1:
+            res_idx = np.argmin( (x_AB[idx] - pix_x) ** 2 + (y_AB[idx] - pix_y) ** 2)
+            if idx == 0:
+                col_x_A = pix_x.ravel()[res_idx]
+                col_y_A = pix_y.ravel()[res_idx]
+                value_A = original_image[(pix_x == pix_x.ravel()[res_idx]) & ((pix_y == pix_y.ravel()[res_idx]))]
+            else:
+                col_x_B = pix_x.ravel()[res_idx]
+                col_y_B = pix_y.ravel()[res_idx]
+                value_B = original_image[(pix_x == pix_x.ravel()[res_idx]) & ((pix_y == pix_y.ravel()[res_idx]))]
 
-        if idx == 0:
-            col_x_A = pix_x[chosen_pix_invert][res_idx]
-            col_y_A = pix_y[chosen_pix_invert][res_idx]
-            value_A = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
         else:
-            col_x_B = pix_x[chosen_pix_invert][res_idx]
-            col_y_B = pix_y[chosen_pix_invert][res_idx]
-            value_B = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
+            res_idx = np.argmin( (x_AB[idx] - pix_x[chosen_pix_invert])**2 + (y_AB[idx] - pix_y[chosen_pix_invert])**2 )
+            if idx == 0:
+                col_x_A = pix_x[chosen_pix_invert][res_idx]
+                col_y_A = pix_y[chosen_pix_invert][res_idx]
+                value_A = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
+            else:
+                col_x_B = pix_x[chosen_pix_invert][res_idx]
+                col_y_B = pix_y[chosen_pix_invert][res_idx]
+                value_B = mean_intensity[ (pix_x == pix_x[chosen_pix_invert][res_idx])&((pix_y == pix_y[chosen_pix_invert][res_idx]))   ]
 
     # print(value_A, value_B)
     return value_A, value_B, col_x_A, col_y_A, col_x_B, col_y_B
