@@ -26,6 +26,9 @@ def make_preobr(image, center_x, center_y, x, y, params):
     delta_x = x[0, 1] - x[0, 0]
     delta_y = y[1, 0] - y[0, 0]
 
+    minmax_xy = [np.min(x), np.max(x), np.min(y), np.max(y)]
+    # print(minmax_xy)
+    # return
     # x = x - center_x
     # y = y - center_y
 
@@ -116,7 +119,7 @@ def make_preobr(image, center_x, center_y, x, y, params):
             mean_x = np.mean(x[chosen_pix])
             mean_y = np.mean(y[chosen_pix])
 
-            x_AB, y_AB = get_distance2AB(an_step, angle_steps[idx2+1], abs_steps[idx1-1], ab_step, mean_grad_x, mean_grad_y, mean_x, mean_y)
+            x_AB, y_AB = get_distance2AB(an_step, angle_steps[idx2+1], abs_steps[idx1-1], ab_step, mean_grad_x, mean_grad_y, mean_x, mean_y, minmax_xy)
             xs_AB.append(x_AB)
             ys_AB.append(y_AB)
 
@@ -318,12 +321,18 @@ def get_rete(abs_steps, angle_steps, Len_x, Len_y, centr_x = 0, centr_y = 0,  on
     return xx, yy
 
 
-def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_mean):
+def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_mean, minmax_xy):
+
+    minx = minmax_xy[0]
+    maxx = minmax_xy[1]
+    miny = minmax_xy[2]
+    maxy = minmax_xy[3]
+
 
     if grad_x == 0:
         x = np.asarray([x_mean, x_mean])
 
-        tmp = np.array([abs_min, abs_max])**2  - x**2
+        tmp = np.array([abs_min, abs_max])**2 - x**2
         x = x[tmp >= 0 ]
         tmp = tmp[tmp >= 0 ]
         y = np.sqrt(tmp)
@@ -380,12 +389,23 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
 
     # Цикл для переноса точек внутрь квадрата картинки
     for i, (xx, yy) in enumerate(zip (x_res, y_res)):
-        if np.abs(xx) > 1:
-            y_res[i] = ( (y_mean - yy) * np.sign(xx) + yy*x_mean - xx*y_mean ) / (x_mean - xx)
-            x_res[i] = np.sign(xx)
-        elif np.abs(yy) > 1:
-            x_res[i] = ( (xx - x_mean) * np.sign(yy) + yy*x_mean - xx*y_mean ) / (yy - y_mean)
-            y_res[i] = np.sign(yy)
+        if (xx < minx):
+            x_res[i] = minx
+            y_res[i] = ((y_mean - yy) * x_res[i] + yy * x_mean - xx * y_mean) / (x_mean - xx)
+        elif (xx > maxx):
+            x_res[i] = maxx
+            y_res[i] = ((y_mean - yy) * x_res[i] + yy * x_mean - xx * y_mean ) / (x_mean - xx)
+
+        if (yy < miny):
+            y_res[i] = miny
+
+            x_res[i] = ((xx - x_mean) * y_res[i] + yy * x_mean - xx * y_mean) / (yy - y_mean)
+
+        elif (yy > maxy):
+            y_res[i] = maxy
+
+            x_res[i] = ((xx - x_mean) * y_res[i] + yy * x_mean - xx * y_mean ) / (yy - y_mean)
+
 
     # print("g", grad_x, grad_y)
     U = grad_x * (x_res - x_mean) + grad_y * (y_res - y_mean)
