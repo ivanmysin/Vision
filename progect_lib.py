@@ -21,7 +21,7 @@ def pix2rel(x_255, y_255, Len_x, Len_y):
     y = 1 - y_255 / Len_y * 2
     return x, y
 
-def make_preobr(image, center_x, center_y, x, y, params):
+def make_preobr(image, x, y, params):
 
     delta_x = x[0, 1] - x[0, 0]
     delta_y = y[1, 0] - y[0, 0]
@@ -60,30 +60,31 @@ def make_preobr(image, center_x, center_y, x, y, params):
     mean_xs = np.empty((0), dtype=np.float)
     mean_ys = np.empty_like(mean_xs)
 
+    if not params["use_origin"]:
+        for idx1, ab_step in enumerate(abs_steps):
+            for idx2, an_step in enumerate(angle_steps[:-1]):
 
-    for idx1, ab_step in enumerate(abs_steps):
-        for idx2, an_step in enumerate(angle_steps[:-1]):
+                if idx1 == 0:
+                    chosen_pix = (abs_pix <= ab_step) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
 
-            if idx1 == 0:
-                chosen_pix = (abs_pix <= ab_step) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
+                # elif idx1+1 == abs_steps.size:
+                #     chosen_pix = (abs_pix > ab_step) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2 + 1])
 
-            # elif idx1+1 == abs_steps.size:
-            #     chosen_pix = (abs_pix > ab_step) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2 + 1])
+                else:
+                    chosen_pix = (abs_pix <= ab_step) & (abs_pix > abs_steps[idx1-1]) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
 
-            else:
-                chosen_pix = (abs_pix <= ab_step) & (abs_pix > abs_steps[idx1-1]) & (angle_pix >= an_step) & (angle_pix < angle_steps[idx2+1])
+                if np.sum(chosen_pix) == 0:
+                    continue
 
-            if np.sum(chosen_pix) == 0:
-                continue
+                # mask[chosen_pix] = np.random.randint(0, 255)
 
-            # mask[chosen_pix] = np.random.randint(0, 255)
+                # mean_xs = np.append(mean_xs, np.mean(x[chosen_pix]))
+                # mean_ys = np.append(mean_ys, np.mean(y[chosen_pix]))
 
-            # mean_xs = np.append(mean_xs, np.mean(x[chosen_pix]))
-            # mean_ys = np.append(mean_ys, np.mean(y[chosen_pix]))
-
-            mean_intensity[chosen_pix] = np.mean(image[chosen_pix])
-            # mean_intensity_list.append(np.mean(image[chosen_pix]))
-
+                mean_intensity[chosen_pix] = np.mean(image[chosen_pix])
+                # mean_intensity_list.append(np.mean(image[chosen_pix]))
+    else:
+        mean_intensity = image
 
 
     cols_x_A, cols_y_A, cols_x_B, cols_y_B = [], [], [], []
@@ -110,11 +111,20 @@ def make_preobr(image, center_x, center_y, x, y, params):
 
             mean_intens = np.mean(image[chosen_pix])
 
-            if params["avg_grad_over"]:
-                mean_grad_x, mean_grad_y = get_new_mean_grad(grad_x[chosen_pix], grad_y[chosen_pix], x[chosen_pix], y[chosen_pix])
+
+
+            if params["use_average_grad"]:
+                if params["avg_grad_over"]:
+                    mean_grad_x, mean_grad_y = get_new_mean_grad(grad_x[chosen_pix], grad_y[chosen_pix], x[chosen_pix], y[chosen_pix])
+                else:
+                    mean_grad_x = np.mean(grad_x[chosen_pix])
+                    mean_grad_y = np.mean(grad_y[chosen_pix])
             else:
-                mean_grad_x = np.mean(grad_x[chosen_pix])
-                mean_grad_y = np.mean(grad_y[chosen_pix])
+                # use mode of gradient
+                print("Hello")
+                mean_grad_x, mean_grad_y = get_grad_mode(grad_x[chosen_pix], grad_y[chosen_pix])
+
+
 
             mean_x = np.mean(x[chosen_pix])
             mean_y = np.mean(y[chosen_pix])
@@ -153,7 +163,10 @@ def make_preobr(image, center_x, center_y, x, y, params):
 
                 if params["apply_smooth_grad_dist"]:
                     grad_component_weights = np.exp( -100.0 * ( (mean_x_new - x[chosen_pix] )**2 + (mean_y_new - y[chosen_pix] )**2  )  )
-                    grad_component_weights /= np.max(grad_component_weights)
+                    if grad_component_weights.size == 0:
+                        grad_component_weights = 1.0
+                    else:
+                        grad_component_weights /= np.max(grad_component_weights)
                 else:
                     grad_component_weights = 1.0
 
@@ -389,21 +402,29 @@ def get_distance2AB(fi_min, fi_max, abs_min, abs_max, grad_x, grad_y, x_mean, y_
 
     # Цикл для переноса точек внутрь квадрата картинки
     for i, (xx, yy) in enumerate(zip (x_res, y_res)):
+
+        is_x_outside = False
         if (xx < minx):
             x_res[i] = minx
-            y_res[i] = ((y_mean - yy) * x_res[i] + yy * x_mean - xx * y_mean) / (x_mean - xx)
+            is_x_outside = True
         elif (xx > maxx):
             x_res[i] = maxx
+            is_x_outside = True
+
+
+        if is_x_outside:
             y_res[i] = ((y_mean - yy) * x_res[i] + yy * x_mean - xx * y_mean ) / (x_mean - xx)
 
+        is_y_outside = False
         if (yy < miny):
             y_res[i] = miny
-
-            x_res[i] = ((xx - x_mean) * y_res[i] + yy * x_mean - xx * y_mean) / (yy - y_mean)
+            is_y_outside = True
 
         elif (yy > maxy):
             y_res[i] = maxy
+            is_y_outside = True
 
+        if is_y_outside:
             x_res[i] = ((xx - x_mean) * y_res[i] + yy * x_mean - xx * y_mean ) / (yy - y_mean)
 
 
@@ -485,3 +506,32 @@ def get_new_mean_grad(grad_x, grad_y, x, y):
     mean_grad_y *= ampl
 
     return mean_grad_x, mean_grad_y
+
+
+def circular_distribution(amples, angles, angle_step, nkernel=15):
+    from scipy.ndimage.filters import convolve1d
+    from scipy.signal.windows import parzen
+
+    kernel = parzen(nkernel)
+    bins = np.arange(-np.pi, np.pi+angle_step, angle_step)
+    distr, _ = np.histogram(angles, bins=bins, weights=amples)
+
+
+    distr = convolve1d(distr, kernel, mode="wrap")
+    bins = np.convolve(bins, [0.5, 0.5], mode="valid")
+
+    return bins, distr
+
+def get_grad_mode(grad_x, grad_y):
+    amples = np.sqrt(grad_x**2 + grad_y**2)
+    angles = np.arctan2(grad_y, grad_x)
+    angle_step = 0.01
+
+    bins, distr = circular_distribution(amples, angles, angle_step, nkernel=150)
+
+    max_idx = np.argmax(distr)
+
+    mode_grad_x = distr[max_idx] * np.cos( bins[max_idx] )
+    mode_grad_y = distr[max_idx] * np.sin( bins[max_idx] )
+
+    return mode_grad_x, mode_grad_y

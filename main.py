@@ -12,13 +12,15 @@ from copy import copy
 # image = image[:250, 100:350] # берем только лицо
 
 default_params = {
+    "use_average_grad" : True, # Использовать среднний градиент, False - использовать модальный градиент
     "shift_xy_mean" : True,  # Сдвигать или нет центр гиперколонки
     "avg_grad_over" : True,  # Усреднять или нет градиент вдоль перпеникуляров к среднему направлению градиента
     "apply_AB_thresh" : True, # Применять или нет обрезание по средним значениях в граничных гиперколонках
     "apply_smooth_grad_dist" : True, # Уменьшать ли вес градиента при удалении от центра гиперколонки
     "apply_grad_in_extrems" : False, # Применять ли градиент, если среднее значение является меньше или больше обоих соседних
-    "smooth_bounds" : True, # не реализовано !!!   Применять или нет сглаживание на границах рецептивных полей
 
+    "use_origin"  : False, # Использовать или нет исходное изображение для определения значений в точках А и B
+    "n_iters" : 1,
 }
 
 params = copy(default_params)
@@ -28,10 +30,15 @@ params["apply_smooth_grad_dist"] = True
 params["avg_grad_over"] = True
 params["apply_grad_in_extrems"] = False
 
-params["outfile"] = "experiment 1"
+params["use_origin"] = False
+params["n_iters"] = 1
+
+params["outfile"] = "astrowomen"
 
 
-image = 255 * rgb2gray(data.astronaut()).astype(np.float) # data.camera().astype(np.float) #  / 255   # np.zeros( (201, 201), dtype=float ) #
+# image = np.zeros( [500, 500], dtype=np.float64)
+image = 255 * rgb2gray(data.astronaut()).astype(np.float)
+# image = data.camera().astype(np.float) #   / 255   # np.zeros( (201, 201), dtype=float ) #
 
 
 Len_y, Len_x = image.shape
@@ -40,7 +47,7 @@ x, y = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
 
 
 
-# image = -200 * x**2 + 100 + 10 * y**2 # + 100 #
+# image = 255 * 0.5 * (np.cos(2 * np.pi * 30 * x) + 1) # -200 * x**2 + 100 + 10 * y**2 # + 100 #
 
 centers_x_255 = np.array( [220, Len_x/2, 126, 103, 148, 102, 144] ) # + 100 # / Len_x * 2 - 1 # np.array( [-0.12, -0.2] ) # np.array( [-0.5, 0.5] ) #
 centers_y_255 = np.array( [120, Len_y/2, 127, 100, 103, 140, 139] ) # / Len_y * 2 # np.array( [0.5, -0.5] )  # np.array( [0.5, 0.6] )   #
@@ -49,8 +56,8 @@ centers_y_255 = np.array( [120, Len_y/2, 127, 100, 103, 140, 139] ) # / Len_y * 
 
 centers_x, centers_y = lib.pix2rel(centers_x_255, centers_y_255, Len_y, Len_x)
 
-centers_x = centers_x[0] # !!!!!
-centers_y = centers_y[0] # !!!!!
+centers_x = centers_x[1] # !!!!!
+centers_y = centers_y[1] # !!!!!
 
 x = x - centers_x
 y = y - centers_y
@@ -66,10 +73,25 @@ y_lim_max = np.max(y)
 # image[:, :Len_x//2] = 200
 
 
-res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib.make_preobr(image, centers_x, centers_y, x, y, params)
+res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib.make_preobr(image, x, y, params)
+
+if params["n_iters"] == 2:
+    params["use_origin"] = True
+    res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib.make_preobr(res_image, x, y, params)
 
 
-
+# center_line = res_image[250, :]
+#
+# K = 15
+# rollingmax = np.array([np.max(center_line[j:j+K]) for j in range(len(center_line)-K+1)])
+# rollingmin = np.array([np.min(center_line[j:j+K]) for j in range(len(center_line)-K+1)])
+# michelson_contrast = (rollingmax - rollingmin) / (rollingmax + rollingmin)
+#
+# fig, ax = plt.subplots(nrows=2, ncols=1 )
+# ax[0].plot(x[0, :], center_line)
+# ax[1].plot(x[0, K//2 : -K//2+1], michelson_contrast)
+#
+# plt.show()
 # if use_not_only_grad:
 #     res_image,  _, _, _, _, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib.make_preobr(res_image, centers_x, centers_y, x, y, use_not_only_grad, onlygrad)
 
@@ -198,4 +220,3 @@ fig2.savefig(fig_saving_path + params["outfile"] + "_large.png", dpi=200)
 #             x_B, y_B = lib.rel2pix(col_x_B, col_y_B, Len_x, Len_y)
 #             # ax[1, 1].arrow(x_B, y_B, mean_x-x_B, mean_y-y_B, width=0.1, color="r", head_width=1)
 #             ax2.arrow(x_B, y_B, mean_x-x_B, mean_y-y_B, width=0.1, color="r", head_width=1)
-
