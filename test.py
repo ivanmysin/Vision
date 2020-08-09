@@ -1,25 +1,85 @@
 import numpy as np
-import progect_lib as lib
+import progect_lib2 as lib
 import matplotlib.pyplot as plt
 
-N = 1000
-amples = np.ones(N)
-angles = 0.2 * np.random.randn(N) + np.pi
-angles[angles >= np.pi] -= 2*np.pi
+params = {}
 
 
+x = np.linspace(-1, 1, 500)
+y = np.linspace(-1, 1, 500)
+
+xx, yy = np.meshgrid(x, y)
 
 
-angle_step = 0.01
-
-x, y = lib.circular_distribution(amples, angles, angle_step, nkernel=150)
-
-x[0] = -np.pi
-x[-1] = np.pi
+sine = 255 * 0.5 * (np.cos(2 * np.pi * xx * 6) + 1)
 
 
-plt.polar(x, y)
+res_image = lib.make_preobr(sine, xx, yy, params)
+
+fig, axes = plt.subplots(nrows=2, ncols=1)
+
+axes[0].pcolor(x, y, sine, cmap='gray', vmin=0, vmax=255)
+axes[1].pcolor(x, y, res_image, cmap='gray', vmin=0, vmax=255)
+
+fig.savefig("/home/ivan/PycharmProjects/Vision/results/dog/test_dog.png")
+
+
 plt.show()
+
+"""
+import numpy as np
+import progect_lib as lib
+import matplotlib.pyplot as plt
+from scipy.ndimage import convolve
+
+sigma_x = 15 * 0.15
+sigma_y = 15 * 0.3
+r_xy = 0
+fi = np.deg2rad(0)
+
+
+a = 0.5 / sigma_x**2
+b = 0.5 / sigma_y**2
+
+
+x = np.linspace(-1, 1, 100)
+y = np.linspace(-1, 1, 100)
+
+
+
+
+xx, yy = np.meshgrid(x, y)
+
+xv = xx * np.cos(fi) + yy * np.sin(fi)
+yv = -xx * np.sin(fi) + yy * np.cos(fi)
+
+gauss2d = np.exp(-a*xv**2 - b*yv**2 ) 
+gauss_grad_x = gauss2d * (-2*a*xv)
+gauss_grad_y = gauss2d * (-2*b*yv)
+
+
+sine = np.cos(2 * np.pi * xx * 5) 
+
+
+grad_sine_x = convolve(sine, gauss_grad_x, mode='constant')
+grad_sine_y = convolve(sine, gauss_grad_y, mode='constant')
+
+grad_ampl = np.sqrt(grad_sine_x**2 + grad_sine_y**2)
+
+fig, axes = plt.subplots(nrows=1, ncols=4)
+
+axes[0].pcolor(x, y, sine)
+
+axes[1].pcolor(x, y, grad_sine_x)
+axes[2].pcolor(x, y, grad_sine_y)
+axes[3].pcolor(x, y, grad_ampl)
+
+
+
+plt.show()
+"""
+
+
 
 """
 import numpy as np

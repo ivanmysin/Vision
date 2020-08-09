@@ -12,9 +12,9 @@ from scipy import signal
 default_params = {
     "use_average_grad" : False,
     "shift_xy_mean" : True,  # Сдвигать или нет центр гиперколонки
-    "avg_grad_over" : True,  # Усреднять или нет градиент вдоль перпеникуляров к среднему направлению градиента
+    "avg_grad_over" : False,  # Усреднять или нет градиент вдоль перпеникуляров к среднему направлению градиента
     "apply_AB_thresh" : False, # Применять или нет обрезание по средним значениях в граничных гиперколонках
-    "apply_smooth_grad_dist" : True, # Уменьшать ли вес градиента при удалении от центра гиперколонки
+    "apply_smooth_grad_dist" : False, # Уменьшать ли вес градиента при удалении от центра гиперколонки
     "apply_grad_in_extrems" : True, # Применять ли градиент, если среднее значение является меньше или больше обоих соседних
 
     "use_origin"  : False, # Использовать или нет исходное изображение для определения значений в точках А и B
@@ -134,58 +134,66 @@ wind_idx_ends_y = wind_idx_ends_y.astype(np.int)
 x, y = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
 x = x + 2 * (full_area_grad[2]  / (full_area_grad[2] + full_area_grad[3]) - 0.5)
 
-
+phases = np.linspace(-np.pi, np.pi, 5)
 
 spfr_coef = 150 * 0.5 # 150 размер поля , 0.5 - потому что x меняется от -1 до 1, т.е. два цикла
-spacial_frequensis = np.array([0.3, ])   # full_area_grad # , 0.6, 0.9, 1.2, 1.5
+spacial_frequensis = np.array([0.6, ])   # full_area_grad # 0.3, 0.6, 0.9, 1.2, 1.5
 
 contast = []
 win_contrats = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 grad_selects = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 
-for freqs_idx, spacial_freqs in enumerate(spacial_frequensis):
-    params = copy(default_params)
-    params["outfile"] = path4figsaving + "sine_" + str(spacial_freqs) + "_Hz.png"
+res_images = 0
 
-    image = 255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x) + 1)
+
+# for freqs_idx, spacial_freqs in enumerate(spacial_frequensis):
+
+spacial_freqs = spacial_frequensis[0]
+for phase_idx, phase0 in enumerate(phases):
+    params = copy(default_params)
+    params["outfile"] = path4figsaving + "sine_" + str(phase_idx) + "_Hz.png"
+
+    image = 255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x + phase0) + 1)
 
     res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib.make_preobr(image, x, y, params)
+
+    res_images = res_images + res_image 
 
     # center_line = get_csf(image, x, y, params)
     # contast.append(center_line)
 
-    for win_idx in range(winds.size):
-        im_wind = res_image[ wind_idx_start_y[win_idx]:wind_idx_ends_y[win_idx], wind_idx_start_x[win_idx]:wind_idx_ends_x[win_idx] ]
-        win_contrats[freqs_idx, win_idx] = get_contrast(im_wind)
-        grad_selects[freqs_idx, win_idx] = get_gradient_selectivity(im_wind, angle=0)
+    # for win_idx in range(winds.size):
+    #     im_wind = res_image[ wind_idx_start_y[win_idx]:wind_idx_ends_y[win_idx], wind_idx_start_x[win_idx]:wind_idx_ends_x[win_idx] ]
+    #     win_contrats[freqs_idx, win_idx] = get_contrast(im_wind)
+    #     grad_selects[freqs_idx, win_idx] = get_gradient_selectivity(im_wind, angle=0)
+res_images = res_images / len(phases)
 
-    fig, ax = plt.subplots(ncols=1, nrows=2)
-    ax[0].pcolor(x_gr, y_gr, image, cmap='gray', vmin=0, vmax=255)
-    ax[1].pcolor(x_gr, y_gr, res_image, cmap='gray', vmin=0, vmax=255)
+fig, ax = plt.subplots(ncols=1, nrows=2)
+ax[0].pcolor(x_gr, y_gr, image, cmap='gray', vmin=0, vmax=255)
+ax[1].pcolor(x_gr, y_gr, res_images, cmap='gray', vmin=0, vmax=255)
 
 
 
-    for wind in winds:
-        rect =  pchs.Rectangle( [wind - hfs,  -hfs], field_size, field_size, linewidth=1, edgecolor='r', facecolor='none')
-        ax[0].add_patch(rect)
+for wind in winds:
+    rect =  pchs.Rectangle( [wind - hfs,  -hfs], field_size, field_size, linewidth=1, edgecolor='r', facecolor='none')
+    ax[0].add_patch(rect)
 
     xxx, yyy = lib.get_rete(abs_steps, angle_steps, Len_x, Len_y, onesformat=True)
 
-    for xx, yy in zip(xxx, yyy):
-        # x, y = lib.pix2rel(x, y, Len_x, Len_y)
-        xx = (xx + 1) * 0.5 * (x_gr[-1] - x_gr[0]) + x_gr[0] - 15
-        yy = (yy + 1) * 0.5 * (y_gr[-1] - y_gr[0]) + y_gr[0]
+for xx, yy in zip(xxx, yyy):
+    # x, y = lib.pix2rel(x, y, Len_x, Len_y)
+    xx = (xx + 1) * 0.5 * (x_gr[-1] - x_gr[0]) + x_gr[0] - 15
+    yy = (yy + 1) * 0.5 * (y_gr[-1] - y_gr[0]) + y_gr[0]
 
-        ax[1].plot(xx, yy, color="b", linewidth=0.1)
-        ax[1].set_xlim(x_gr[0], x_gr[-1])
-        ax[1].set_ylim(y_gr[0], y_gr[-1])
+    ax[1].plot(xx, yy, color="b", linewidth=0.1)
+    ax[1].set_xlim(x_gr[0], x_gr[-1])
+    ax[1].set_ylim(y_gr[0], y_gr[-1])
 
 
 
-    fig.savefig(params["outfile"])
-    plt.close("all")
+fig.savefig(params["outfile"])
+plt.close("all")
 
-    print(freqs_idx)
 
 
 

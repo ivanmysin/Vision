@@ -121,7 +121,6 @@ def make_preobr(image, x, y, params):
                     mean_grad_y = np.mean(grad_y[chosen_pix])
             else:
                 # use mode of gradient
-                print("Hello")
                 mean_grad_x, mean_grad_y = get_grad_mode(grad_x[chosen_pix], grad_y[chosen_pix])
 
 
@@ -139,7 +138,7 @@ def make_preobr(image, x, y, params):
             if not params["apply_grad_in_extrems"]:
                 if (val_A > mean_intens and val_B > mean_intens) or (val_A < mean_intens and val_B < mean_intens):
                     res_image[chosen_pix] = mean_intens
-                    continue
+
 
 
             cols_x_A.append(col_x_A)
@@ -147,8 +146,6 @@ def make_preobr(image, x, y, params):
             cols_x_B.append(col_x_B)
             cols_y_B.append(col_y_B)
 
-            # if  idx1+2 != abs_steps.size:
-            #     print("last")
 
             mean_x_new = mean_x
             mean_y_new = mean_y
@@ -163,10 +160,12 @@ def make_preobr(image, x, y, params):
 
                 if params["apply_smooth_grad_dist"]:
                     grad_component_weights = np.exp( -100.0 * ( (mean_x_new - x[chosen_pix] )**2 + (mean_y_new - y[chosen_pix] )**2  )  )
-                    if grad_component_weights.size == 0:
+                    
+                    max_grad_weight = np.max(grad_component_weights)
+                    if max_grad_weight == 0:
                         grad_component_weights = 1.0
                     else:
-                        grad_component_weights /= np.max(grad_component_weights)
+                        grad_component_weights /= max_grad_weight
                 else:
                     grad_component_weights = 1.0
 
@@ -174,10 +173,18 @@ def make_preobr(image, x, y, params):
 
 
                 if params["apply_AB_thresh"]:
-                    res_image_tmp = res_image[chosen_pix]
-                    res_image_tmp[res_image_tmp <= val_A] = val_A
-                    res_image_tmp[res_image_tmp >= val_B] = val_B
-                    res_image[chosen_pix] = res_image_tmp
+                    min_th = val_A
+                    max_th = val_B
+                else:
+                    min_th = 0
+                    max_th = 255
+
+                res_image_tmp = res_image[chosen_pix]
+                res_image_tmp[res_image_tmp <= min_th] = min_th
+                res_image_tmp[res_image_tmp >= max_th] = max_th
+                res_image[chosen_pix] = res_image_tmp
+
+
 
             else:
                 print("Ua and Ub are equal!")
@@ -186,56 +193,9 @@ def make_preobr(image, x, y, params):
             mean_xs = np.append(mean_xs, mean_x_new)
             mean_ys = np.append(mean_ys, mean_y_new)
 
-            # print(np.sum(chosen_pix))  Антоха, все отправил?
-            # z = np.ones_like(image)
-            # z[chosen_pix] = res_image[chosen_pix]
-            # fig, ax = plt.subplots(nrows=1, ncols=1)
-            # ax.pcolor(x[0, :], y[:, 0], z, cmap='gray', vmin=0, vmax=1)
-            # # print(y[:, 0])
-            # ax.plot(x_AB, y_AB, color="green")
-            # ax.scatter(mean_x, mean_y, color="red")
-            # ax.scatter(mean_x_new, mean_y_new, color="blue")
-            # ax.scatter(col_x_A, col_y_A, color="m", s=50)
-            # ax.scatter(col_x_B, col_y_B, color="m", s=50)
-            # nrmse = np.sqrt( np.mean( (res_image[chosen_pix] - image[chosen_pix])**2 ) )
-            # ax.set_xlabel(label.format(nrmse))
-            #
-            # x_min2plot = np.min( x[chosen_pix] ) - delta_x
-            # x_max2plot = np.max( x[chosen_pix] ) + delta_x
-            #
-            # x_min2plot -= 0.2*np.abs(x_min2plot)
-            # x_max2plot += 0.2*np.abs(x_max2plot)
-            #
-            # # print(x_min2plot, x_max2plot)
-            # ax.set_xlim(x_min2plot, x_max2plot)
-            #
-            # y_min2plot = np.min(y[chosen_pix]) - delta_y # - 0.2 * np.abs(np.min(y[chosen_pix]))
-            # y_max2plot = np.max(y[chosen_pix]) + delta_y # + 0.2 * np.abs(np.max(y[chosen_pix]))
-            #
-            # y_min2plot -= 0.2 * np.abs(y_min2plot)
-            # y_max2plot += 0.2 * np.abs(y_max2plot)
-            #
-            #
-            # ax.set_ylim(y_min2plot, y_max2plot)
-            #
-            # for x_rete, y_rete in zip(xx_rete, yy_rete):
-            #     ax.plot(x_rete, y_rete, color="b")
-            #
-            #
-            # fig.savefig("./results/each_segment/" + str(global_counter)  + ".png")
-            # # plt.show(block=False)
-            # # # break
-            # plt.close(fig)
-
-
             global_counter += 1
 
-    # cols_x_A = np.asarray(cols_x_A) + center_x
-    # cols_y_A = np.asarray(cols_y_A) + center_y
-    # cols_x_B = np.asarray(cols_x_B) + center_x
-    # cols_y_B = np.asarray(cols_y_B) + center_y
-    # mean_xs = np.asarray(mean_xs) + center_x
-    # mean_ys = np.asarray(mean_ys) + center_y
+
 
     cols_AB = [cols_x_A, cols_y_A, cols_x_B, cols_y_B, mean_xs, mean_ys]
     return res_image, mean_intensity, mean_xs, mean_ys, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB   # , mask
