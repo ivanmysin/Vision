@@ -5,8 +5,8 @@ from scipy.ndimage import convolve
 
 def make_preobr(image, x, y, params):
 
-    delta_x = x[0, 1] - x[0, 0]
-    delta_y = y[1, 0] - y[0, 0]
+    # delta_x = x[0, 1] - x[0, 0]
+    # delta_y = y[1, 0] - y[0, 0]
 
 
     abs_pix = np.sqrt((x**2 + y**2))
@@ -62,7 +62,7 @@ def make_preobr(image, x, y, params):
             field_kernel = field_kernel / np.sum(field_kernel)
             receptive_field_responce = image * field_kernel
             
-            sigma_long = field_radius
+            sigma_long = field_radius * params["sigma_multipl"]
             sigma_short = 0.5 * sigma_long
             
             center_idx = np.argmax(field_kernel)
