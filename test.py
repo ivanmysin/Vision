@@ -2,26 +2,30 @@ import numpy as np
 import progect_lib2 as lib
 import matplotlib.pyplot as plt
 
-params = {}
+from scipy.ndimage import convolve
 
 
-x = np.linspace(-1, 1, 500)
-y = np.linspace(-1, 1, 500)
+x = np.linspace(-1, 1, 200)
+y = np.linspace(-1, 1, 200)
 
 xx, yy = np.meshgrid(x, y)
 
 
-sine = 255 * 0.5 * (np.cos(2 * np.pi * xx * 6) + 1)
+image = 0.5 * (xx + 1) 
 
+sigma_long = 0.1
+sigma_short = 0.5 * sigma_long
 
-res_image = lib.make_preobr(sine, xx, yy, params)
+grad_x, grad_y = lib.get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, 0.5, 0.2)
+
+print(grad_x, grad_y)
 
 fig, axes = plt.subplots(nrows=2, ncols=1)
 
-axes[0].pcolor(x, y, sine, cmap='gray', vmin=0, vmax=255)
-axes[1].pcolor(x, y, res_image, cmap='gray', vmin=0, vmax=255)
+axes[0].pcolor(x, y, image, cmap='gray', vmin=0, vmax=1)
+# axes[1].pcolor(x, y, res, cmap='rainbow')
 
-fig.savefig("/home/ivan/PycharmProjects/Vision/results/dog/test_dog.png")
+#fig.savefig("/home/ivan/PycharmProjects/Vision/results/dog/test_dog.png")
 
 
 plt.show()

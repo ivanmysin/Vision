@@ -94,8 +94,8 @@ def get_gradient_selectivity(image, angle=0):
 path4figsaving = "/home/ivan/PycharmProjects/Vision/results/large_wave/"
 
 params = copy(default_params)
-params["outfile"] = path4figsaving + "new_sine_0.004_Hz.png"
-params["sigma_multipl"] = 1
+params["outfile"] = path4figsaving + "new_0.5_sigma_sine_0.004_Hz.png"
+params["sigma_multipl"] = 0.5
 
 
 
@@ -103,7 +103,7 @@ wind4csf = 50 # Окно для расчета функции контраста
 
 thresh4signif = 0.1
 
-Nganlcells = 500 * 500 # Число ганглиозных клеток
+Nganlcells = 200*200 #  500 * 500 # Число ганглиозных клеток
 full_area_grad = np.asarray( [55, 60, 90, 60] ) #  градусы верх, низ, наружу, внутрь
 
 Len_y = np.sqrt(Nganlcells * ( full_area_grad[0] + full_area_grad[1] ) / (full_area_grad[2] + full_area_grad[3]))
@@ -115,7 +115,7 @@ Len_x = int (np.round( Nganlcells / Len_y ))
 x_gr = np.linspace(-full_area_grad[3], full_area_grad[2], Len_x)
 y_gr = np.linspace(-full_area_grad[1], full_area_grad[0], Len_y)
 
-
+"""
 field_size = 10 # in grad
 hfs = field_size * 0.5 # in grad
 winds = np.array([10, 15, 20, 25])
@@ -135,6 +135,7 @@ wind_idx_ends_y = wind_idx_ends_y.astype(np.int)
 # print(wind_idx_ends_x)
 # print(Len_x)
 
+"""
 
 
 
@@ -146,10 +147,11 @@ phase0 = 0 # np.linspace(-np.pi, np.pi, 5)
 spfr_coef = 150 * 0.5 # 150 размер поля , 0.5 - потому что x меняется от -1 до 1, т.е. два цикла
 spacial_frequensis = np.array([0.004, ])   # full_area_grad # 0.3, 0.6, 0.9, 1.2, 1.5
 
+"""
 contast = []
 win_contrats = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 grad_selects = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
-
+"""
 
 
 
@@ -158,7 +160,7 @@ grad_selects = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 spacial_freqs = spacial_frequensis[0]
 for freq_idx, spacial_freqs in enumerate(spacial_frequensis):
 
-    image = 255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x + phase0) + 1)
+    image =  255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x + phase0) + 1) # 100 * (x + 1) #
 
     # res_image = image
     # res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib1.make_preobr(image, x, y, params)
@@ -183,13 +185,20 @@ ax[1].pcolor(x_gr, y_gr, res_image, cmap='gray', vmin=0, vmax=255)
 for wind in winds:
     rect =  pchs.Rectangle( [wind - hfs,  -hfs], field_size, field_size, linewidth=1, edgecolor='r', facecolor='none')
     ax[0].add_patch(rect)
+"""
 
-    xxx, yyy = lib1.get_rete(abs_steps, angle_steps, Len_x, Len_y, onesformat=True)
+"""
+abs_pix = np.sqrt((x**2 + y**2))
+angle_pix = np.arctan2(y, x)
+
+abs_steps = np.geomspace(0.01*(x.max() - x.min()), np.max(abs_pix)+0.0001, 30)  # np.linspace(np.min(abs_pix), np.max(abs_pix)+0.0001, 10) #
+angle_steps = np.linspace(-np.pi, np.pi+0.0001, 30)
+xxx, yyy = lib1.get_rete(abs_steps, angle_steps, Len_x, Len_y, onesformat=True)
 
 for xx, yy in zip(xxx, yyy):
     # x, y = lib.pix2rel(x, y, Len_x, Len_y)
-    xx = (xx + 1) * 0.5 * (x_gr[-1] - x_gr[0]) + x_gr[0] - 15
-    yy = (yy + 1) * 0.5 * (y_gr[-1] - y_gr[0]) + y_gr[0]
+    # xx = (xx + 1) * 0.5 * (x_gr[-1] - x_gr[0]) + x_gr[0] - 15
+    # yy = (yy + 1) * 0.5 * (y_gr[-1] - y_gr[0]) + y_gr[0]
 
     ax[1].plot(xx, yy, color="b", linewidth=0.1)
     ax[1].set_xlim(x_gr[0], x_gr[-1])
@@ -198,6 +207,8 @@ for xx, yy in zip(xxx, yyy):
 
 
 fig.savefig(params["outfile"])
+
+plt.show()
 plt.close("all")
 
 

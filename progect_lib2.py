@@ -1,17 +1,17 @@
 import numpy as np
 from scipy.ndimage import convolve
+import matplotlib.pyplot as plt
 
 
 
 def make_preobr(image, x, y, params):
 
-    # delta_x = x[0, 1] - x[0, 0]
+    delta_x = x[0, 1] - x[0, 0]
     # delta_y = y[1, 0] - y[0, 0]
 
 
     abs_pix = np.sqrt((x**2 + y**2))
     angle_pix = np.arctan2(y, x)
-
 
     
     abs_steps = np.geomspace(0.01*(x.max() - x.min()), np.max(abs_pix)+0.0001, 30)  # np.linspace(np.min(abs_pix), np.max(abs_pix)+0.0001, 10) #
@@ -40,39 +40,43 @@ def make_preobr(image, x, y, params):
             
             if field_square == 0:
                 continue
-            elif field_square < 2:
+            elif field_square < 10:
                 res_image[chosen_pix] = image[chosen_pix]
                 continue
 
             field_x = x[chosen_pix]
             field_y = y[chosen_pix]
             
-            
-            
-            
+
             field_center_x = np.mean(field_x)
             field_center_y = np.mean(field_y)
             
             
             field_radius = max([np.max( np.abs(field_y-field_center_y) ), np.max( np.abs(field_x-field_center_x) )])
-            
+            # field_radius = field_radius / delta_x
+ 
             
             kernel_sigma = field_radius
             field_kernel = np.exp(  -0.5*(x - field_center_x)**2/kernel_sigma**2 - 0.5*(y - field_center_y)**2/kernel_sigma**2   )
             field_kernel = field_kernel / np.sum(field_kernel)
             receptive_field_responce = image * field_kernel
+            # receptive_field_responce = np.zeros_like(image)
+            # receptive_field_responce[chosen_pix] = image[chosen_pix]
             
             sigma_long = field_radius * params["sigma_multipl"]
             sigma_short = 0.5 * sigma_long
             
-            center_idx = np.argmax(field_kernel)
+            # center_idx = np.argmax(field_kernel)
+            # print(sigma_long)
+            # grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.4)
+            grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, x, y, field_center_x, field_center_y)
+            # print(grad_x, grad_y)   
 
-            grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.4)
-
-
+            grad_x *= 1500
+            grad_y *= 1500
             mean_intens = np.sum(receptive_field_responce)
 
-
+            # print(grad_x * (field_x - field_center_x) )
             res_image[chosen_pix] = mean_intens + grad_x * (field_x - field_center_x) + grad_y * (field_y - field_center_y)
 
             min_th = 0
@@ -90,7 +94,47 @@ def make_preobr(image, x, y, params):
     return res_image
 
 
+def get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, centx, centy):
 
+    
+    dx = np.abs(xx[0, 1] - xx[0, 0])
+    dy = np.abs(yy[1, 0] - yy[0, 0])
+
+
+    a = 0.5 / sigma_short**2
+    b = 0.5 / sigma_long**2
+
+    xv = centx - xx
+    yv = centy - yy
+    
+    gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy
+    
+    
+    
+    # if np.sum( np.abs(xx) > 3*sigma_long) < 5:
+    #     return 0.0, 0.005
+    
+    
+    gauss_grad_x = gauss2d * (-2*a*xv)
+    # plt.imshow(gauss_grad_x, cmap="rainbow")
+    # plt.show()
+    
+    
+
+    grad_x = np.sum(image * gauss_grad_x)
+    
+    
+    xv, yv = yv, -xx
+    gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy
+    gauss_grad_y = gauss2d * (-2*a*xv)
+    grad_y = np.sum(image * gauss_grad_y) 
+    
+   
+    return grad_x, grad_y
+    
+
+
+"""
 def get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.1):
     
     a = 0.5 / sigma_short**2
@@ -103,6 +147,8 @@ def get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, cente
     ample_grads = []
     angles = np.arange(-np.pi, np.pi, angle_step)
     
+
+    
     for fi in angles:
         xv = xx * np.cos(fi) + yy * np.sin(fi)
         yv = -xx * np.sin(fi) + yy * np.cos(fi)
@@ -114,16 +160,23 @@ def get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, cente
         
         ample_grad = convolve(receptive_field_responce, gauss_grad_x, mode='constant')
         
+       
+        # print(ample_grad.min() )
+        
+        
+        
         ample_grad = ample_grad.ravel()[center_idx]
         ample_grads.append(ample_grad)
     
     ample_grads = np.asarray(ample_grads)
     max_idx = np.argmax(ample_grads)
     
+    
+    
     grad_x = ample_grads[max_idx] * np.cos(angles[max_idx])
     grad_y = ample_grads[max_idx] * np.sin(angles[max_idx])
     return grad_x, grad_y
-
+"""
 
 
 
