@@ -94,8 +94,8 @@ def get_gradient_selectivity(image, angle=0):
 path4figsaving = "/home/ivan/PycharmProjects/Vision/results/large_wave/"
 
 params = copy(default_params)
-params["outfile"] = path4figsaving + "new_0.5_sigma_sine_0.004_Hz.png"
-params["sigma_multipl"] = 0.5
+params["outfile"] = path4figsaving + "sine.png"  # new_0.5_sigma_
+params["sigma_multipl"] = 1.0
 
 
 

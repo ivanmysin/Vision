@@ -53,28 +53,26 @@ def make_preobr(image, x, y, params):
             
             
             field_radius = max([np.max( np.abs(field_y-field_center_y) ), np.max( np.abs(field_x-field_center_x) )])
-            # field_radius = field_radius / delta_x
- 
             
-            kernel_sigma = field_radius
-            field_kernel = np.exp(  -0.5*(x - field_center_x)**2/kernel_sigma**2 - 0.5*(y - field_center_y)**2/kernel_sigma**2   )
-            field_kernel = field_kernel / np.sum(field_kernel)
-            receptive_field_responce = image * field_kernel
+            # kernel_sigma = field_radius
+            # field_kernel = np.exp(  -0.5*(x - field_center_x)**2/kernel_sigma**2 - 0.5*(y - field_center_y)**2/kernel_sigma**2   )
+            # field_kernel = field_kernel / np.sum(field_kernel)
+            # receptive_field_responce = image * field_kernel
             # receptive_field_responce = np.zeros_like(image)
             # receptive_field_responce[chosen_pix] = image[chosen_pix]
             
             sigma_long = field_radius * params["sigma_multipl"]
-            sigma_short = 0.5 * sigma_long
+            sigma_short = 0.5 * sigma_long 
             
             # center_idx = np.argmax(field_kernel)
             # print(sigma_long)
             # grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.4)
-            grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, x, y, field_center_x, field_center_y)
+            grad_x, grad_y = get_gradient_by_DOG(image, sigma_long, sigma_short, x, y, field_center_x, field_center_y)
             # print(grad_x, grad_y)   
 
-            grad_x *= 1500
-            grad_y *= 1500
-            mean_intens = np.sum(receptive_field_responce)
+            # grad_x *= 0.5
+            # grad_y *= 0.5
+            mean_intens = np.mean(image[chosen_pix] )
 
             # print(grad_x * (field_x - field_center_x) )
             res_image[chosen_pix] = mean_intens + grad_x * (field_x - field_center_x) + grad_y * (field_y - field_center_y)
@@ -108,14 +106,19 @@ def get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, centx, centy):
     yv = centy - yy
     
     gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy
+    gauss2d[gauss2d < 1e-7] = 0
     
-    
-    
+    # gauss2d = gauss2d / np.sum(gauss2d)
     # if np.sum( np.abs(xx) > 3*sigma_long) < 5:
     #     return 0.0, 0.005
     
     
     gauss_grad_x = gauss2d * (-2*a*xv)
+    
+    #gauss_grad_x[gauss_grad_x < 0] /= 2*np.sum(gauss_grad_x[gauss_grad_x < 0])
+    #gauss_grad_x[gauss_grad_x > 0] /= 2*np.sum(gauss_grad_x[gauss_grad_x > 0])
+    
+    # print(np.sum(gauss2d), np.sum(gauss_grad_x), np.sum(gauss_grad_x[gauss_grad_x>=0]) )
     # plt.imshow(gauss_grad_x, cmap="rainbow")
     # plt.show()
     
@@ -124,8 +127,9 @@ def get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, centx, centy):
     grad_x = np.sum(image * gauss_grad_x)
     
     
-    xv, yv = yv, -xx
+    xv, yv = yv, -xv
     gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy
+    gauss2d[gauss2d < 1e-7] = 0
     gauss_grad_y = gauss2d * (-2*a*xv)
     grad_y = np.sum(image * gauss_grad_y) 
     
