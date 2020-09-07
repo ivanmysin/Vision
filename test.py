@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import convolve, gaussian_filter
 
 
-x = np.linspace(-1, 1, 201)
+x = np.linspace(-1, 1, 901)
 y = np.linspace(-1, 1, 201)
 
 dx = x[1] - x[0]
@@ -14,7 +14,7 @@ xx, yy = np.meshgrid(x, y)
 # 255 * 
 
 phase0 = -0.5*np.pi
-image = 255 * 0.5 * (np.cos(2 * np.pi * 0.5 * xx + phase0) + 1) # 0.5 * (yy + 1) 
+image = 0.5 * (np.cos(2 * np.pi * 0.5 * xx + phase0) + 1) # 0.5 * (yy + 1) 
 sigmas = np.linspace(0.015, 0.2, 30)
 
 grad_xs, grad_ys = [], []
@@ -27,20 +27,33 @@ for sigma_long in sigmas:
     grad_ys.append(grad_y)
     
     # print(sigma_long)
+grad_xs = np.asarray(grad_xs)
+grad_ys = np.asarray(grad_ys)
+theor_grad = -np.sin(phase0)
+# print( theor_grad )
+res = np.gradient(image[100, :], dx)
 
-print( -255 * np.sin(phase0) )
+
+norm = grad_xs * np.exp(1.22 * sigmas**2) / 1.57
 
 fig, axes = plt.subplots(nrows=2, ncols=1)
 
-axes[0].plot(sigmas, grad_xs)
+axes[0].plot(sigmas, norm)
 axes[1].plot(sigmas, grad_ys)
 
+#axes[0].plot(sigmas,  np.zeros_like(sigmas)+theor_grad, color="red")
 
-res = np.gradient(image[100, :], dx)
+
+
+
+
+
 fig, axes = plt.subplots(nrows=2, ncols=1)
 # axes[0].pcolor(x, y, image, cmap='gray', vmin=0, vmax=1)
 axes[0].plot(x, image[100, :])
 axes[1].plot(x, res)
+axes[1].plot(x, np.zeros_like(x)+theor_grad, color="red")
+
 
 #fig.savefig("/home/ivan/PycharmProjects/Vision/results/dog/test_dog.png")
 

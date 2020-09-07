@@ -94,7 +94,7 @@ def get_gradient_selectivity(image, angle=0):
 path4figsaving = "/home/ivan/PycharmProjects/Vision/results/large_wave/"
 
 params = copy(default_params)
-params["outfile"] = path4figsaving + "sine.png"  # new_0.5_sigma_
+params["outfile"] = path4figsaving + "new_sine.png"  # new_0.5_sigma_
 params["sigma_multipl"] = 1.0
 
 
@@ -103,14 +103,12 @@ wind4csf = 50 # Окно для расчета функции контраста
 
 thresh4signif = 0.1
 
-Nganlcells = 200*200 #  500 * 500 # Число ганглиозных клеток
+Nganlcells = 500*500 #  500 * 500 # Число ганглиозных клеток
 full_area_grad = np.asarray( [55, 60, 90, 60] ) #  градусы верх, низ, наружу, внутрь
 
 Len_y = np.sqrt(Nganlcells * ( full_area_grad[0] + full_area_grad[1] ) / (full_area_grad[2] + full_area_grad[3]))
 Len_y = int( np.round(Len_y) )
 Len_x = int (np.round( Nganlcells / Len_y ))
-
-
 
 x_gr = np.linspace(-full_area_grad[3], full_area_grad[2], Len_x)
 y_gr = np.linspace(-full_area_grad[1], full_area_grad[0], Len_y)

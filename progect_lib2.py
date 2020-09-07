@@ -40,10 +40,11 @@ def make_preobr(image, x, y, params):
             
             if field_square == 0:
                 continue
-            elif field_square < 10:
+            elif field_square < 2:
                 res_image[chosen_pix] = image[chosen_pix]
                 continue
 
+            
             field_x = x[chosen_pix]
             field_y = y[chosen_pix]
             
@@ -62,16 +63,24 @@ def make_preobr(image, x, y, params):
             # receptive_field_responce[chosen_pix] = image[chosen_pix]
             
             sigma_long = field_radius * params["sigma_multipl"]
+            
+            if sigma_long < 0.015:
+                sigma_long = 0.015
+            
+            
             sigma_short = 0.5 * sigma_long 
             
             # center_idx = np.argmax(field_kernel)
             # print(sigma_long)
             # grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.4)
             grad_x, grad_y = get_gradient_by_DOG(image, sigma_long, sigma_short, x, y, field_center_x, field_center_y)
+            
+            # if grad_x > 255:
+            #    print(field_center_x, field_center_y)
             # print(grad_x, grad_y)   
 
-            # grad_x *= 0.5
-            # grad_y *= 0.5
+            # grad_x *= np.exp(1.22 * sigma_long**2) / 1.57
+            # grad_y *= np.exp(1.22 * sigma_long**2) / 1.57
             mean_intens = np.mean(image[chosen_pix] )
 
             # print(grad_x * (field_x - field_center_x) )
@@ -105,7 +114,7 @@ def get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, centx, centy):
     xv = centx - xx
     yv = centy - yy
     
-    gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy
+    gauss2d = np.exp(-a*xv**2 - b*yv**2 ) / ( 2*np.pi*sigma_long*sigma_short) * dx * dy 
     gauss2d[gauss2d < 1e-7] = 0
     
     # gauss2d = gauss2d / np.sum(gauss2d)
