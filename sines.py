@@ -1,5 +1,5 @@
 import numpy as np
-from skimage import metrics
+from skimage import metrics, data
 import matplotlib.pyplot as plt
 import matplotlib.patches as pchs
 
@@ -60,58 +60,27 @@ def get_contrast(image):
 
 
 
-def get_gradient_selectivity(image, angle=0):
-
-    grad_y, grad_x = np.gradient(image, 1, 1)
-
-    if angle != 0:
-        Len_y, Len_x = image.shape
-        angle = np.deg2rad(angle)
-        R = np.zeros([2, 2], dtype=np.float)
-
-        R[0, 0] = np.cos(angle)
-        R[0, 1] = -np.sin(angle)
-        R[1, 0] = np.sin(angle)
-        R[1, 1] = np.cos(angle)
-
-        grad = np.array([ grad_y.ravel(), grad_x.ravel() ])
-        grad = np.dot(R, grad)
-
-        grad_x = grad[1, :].reshape(Len_y, Len_x)
-        grad_y = grad[0, :].reshape(Len_y, Len_x)
-
-        # print("Hello")
-
-    agx = np.mean( np.abs(grad_x) )
-    agy = np.mean( np.abs(grad_y) )
-
-    # print(agx, agy)
-
-    selectivity = (agx - agy ) / (agx + agy + 0.0000001)
-    return selectivity
-
-
 path4figsaving = "/home/ivan/PycharmProjects/Vision/results/large_wave/"
 
 params = copy(default_params)
-params["outfile"] = path4figsaving + "new_sine.png"  # new_0.5_sigma_
+params["outfile"] = path4figsaving + "new_sine_camera.png"  # new_0.5_sigma_
 params["sigma_multipl"] = 1.0
 
+image = data.camera()
 
+# wind4csf = 50 # Окно для расчета функции контраста в пикселях
 
-wind4csf = 50 # Окно для расчета функции контраста в пикселях
+# thresh4signif = 0.1
 
-thresh4signif = 0.1
+# Nganlcells = 200*200 #  500 * 500 # Число ганглиозных клеток
+# full_area_grad = np.asarray( [55, 60, 90, 60] ) #  градусы верх, низ, наружу, внутрь
 
-Nganlcells = 500*500 #  500 * 500 # Число ганглиозных клеток
-full_area_grad = np.asarray( [55, 60, 90, 60] ) #  градусы верх, низ, наружу, внутрь
+Len_y = image.shape[0] # np.sqrt(Nganlcells * ( full_area_grad[0] + full_area_grad[1] ) / (full_area_grad[2] + full_area_grad[3]))
+# Len_y = int( np.round(Len_y) )
+Len_x = image.shape[1] # int (np.round( Nganlcells / Len_y ))
 
-Len_y = np.sqrt(Nganlcells * ( full_area_grad[0] + full_area_grad[1] ) / (full_area_grad[2] + full_area_grad[3]))
-Len_y = int( np.round(Len_y) )
-Len_x = int (np.round( Nganlcells / Len_y ))
-
-x_gr = np.linspace(-full_area_grad[3], full_area_grad[2], Len_x)
-y_gr = np.linspace(-full_area_grad[1], full_area_grad[0], Len_y)
+# x_gr = np.linspace(-full_area_grad[3], full_area_grad[2], Len_x)
+# y_gr = np.linspace(-full_area_grad[1], full_area_grad[0], Len_y)
 
 """
 field_size = 10 # in grad
@@ -138,14 +107,14 @@ wind_idx_ends_y = wind_idx_ends_y.astype(np.int)
 
 
 x, y = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
-x = x + 2 * (full_area_grad[2]  / (full_area_grad[2] + full_area_grad[3]) - 0.5)
-
+# x = x + 2 * (full_area_grad[2]  / (full_area_grad[2] + full_area_grad[3]) - 0.5)
+"""
 phase0 = 0 # np.linspace(-np.pi, np.pi, 5)
 
 spfr_coef = 150 * 0.5 # 150 размер поля , 0.5 - потому что x меняется от -1 до 1, т.е. два цикла
 spacial_frequensis = np.array([0.004, ])   # full_area_grad # 0.3, 0.6, 0.9, 1.2, 1.5
 
-"""
+
 contast = []
 win_contrats = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 grad_selects = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
@@ -153,30 +122,27 @@ grad_selects = np.zeros( [spacial_frequensis.size, winds.size] , dtype=np.float)
 
 
 
-# for freqs_idx, spacial_freqs in enumerate(spacial_frequensis):
-
-spacial_freqs = spacial_frequensis[0]
-for freq_idx, spacial_freqs in enumerate(spacial_frequensis):
-
-    image =  255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x + phase0) + 1) # 100 * (x + 1) #
-
-    # res_image = image
-    # res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib1.make_preobr(image, x, y, params)
-    res_image = lib2.make_preobr(image, x, y, params)
 
 
 
-    # center_line = get_csf(image, x, y, params)
-    # contast.append(center_line)
 
-    # for win_idx in range(winds.size):
-    #     im_wind = res_image[ wind_idx_start_y[win_idx]:wind_idx_ends_y[win_idx], wind_idx_start_x[win_idx]:wind_idx_ends_x[win_idx] ]
-    #     win_contrats[freqs_idx, win_idx] = get_contrast(im_wind)
-    #     grad_selects[freqs_idx, win_idx] = get_gradient_selectivity(im_wind, angle=0)
+# image = 255 * 0.5 * (np.cos(2 * np.pi * spacial_freqs * spfr_coef * x + phase0) + 1) # 100 * (x + 1) #
+    
 
-fig, ax = plt.subplots(ncols=1, nrows=2)
-ax[0].pcolor(x_gr, y_gr, image, cmap='gray', vmin=0, vmax=255)
-ax[1].pcolor(x_gr, y_gr, res_image, cmap='gray', vmin=0, vmax=255)
+
+# res_image, mean_intensity, mean_x, mean_y, abs_steps, angle_steps, xs_AB, ys_AB, cols_AB = lib1.make_preobr(image, x, y, params)
+res_image = lib2.make_preobr(image, x, y, params)
+
+
+
+# for win_idx in range(winds.size):
+#     im_wind = res_image[ wind_idx_start_y[win_idx]:wind_idx_ends_y[win_idx], wind_idx_start_x[win_idx]:wind_idx_ends_x[win_idx] ]
+#     win_contrats[freqs_idx, win_idx] = get_contrast(im_wind)
+#     grad_selects[freqs_idx, win_idx] = get_gradient_selectivity(im_wind, angle=0)
+
+fig, ax = plt.subplots(ncols=2, nrows=1)
+ax[0].pcolor(x[0, :], y[:, 0], image, cmap='gray', vmin=0, vmax=255)
+ax[1].pcolor(x[0, :], y[:, 0], res_image, cmap='gray', vmin=0, vmax=255)
 
 
 """

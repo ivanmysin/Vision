@@ -21,6 +21,7 @@ def make_preobr(image, x, y, params):
 
     res_image = np.zeros_like(image, dtype=float)
     mean_intensity = np.zeros_like(image, dtype=float)
+    weights = np.zeros_like(image, dtype=float)
 
     mean_xs = np.empty((0), dtype=np.float)
     mean_ys = np.empty_like(mean_xs)
@@ -55,17 +56,17 @@ def make_preobr(image, x, y, params):
             
             field_radius = max([np.max( np.abs(field_y-field_center_y) ), np.max( np.abs(field_x-field_center_x) )])
             
-            # kernel_sigma = field_radius
-            # field_kernel = np.exp(  -0.5*(x - field_center_x)**2/kernel_sigma**2 - 0.5*(y - field_center_y)**2/kernel_sigma**2   )
-            # field_kernel = field_kernel / np.sum(field_kernel)
+            kernel_sigma = field_radius
+            field_kernel = np.exp(  -0.5*(x - field_center_x)**2/kernel_sigma**2 - 0.5*(y - field_center_y)**2/kernel_sigma**2   )
+            # field_kernel = field_kernel / np.sum(field_kernel) 
             # receptive_field_responce = image * field_kernel
             # receptive_field_responce = np.zeros_like(image)
             # receptive_field_responce[chosen_pix] = image[chosen_pix]
             
             sigma_long = field_radius * params["sigma_multipl"]
             
-            if sigma_long < 0.015:
-                sigma_long = 0.015
+            if sigma_long < 0.02:
+                sigma_long = 0.02
             
             
             sigma_short = 0.5 * sigma_long 
@@ -75,26 +76,35 @@ def make_preobr(image, x, y, params):
             # grad_x, grad_y = get_gradient_by_DOG(receptive_field_responce, sigma_long, sigma_short, center_idx, angle_step=0.4)
             grad_x, grad_y = get_gradient_by_DOG(image, sigma_long, sigma_short, x, y, field_center_x, field_center_y)
             
-            # if grad_x > 255:
-            #    print(field_center_x, field_center_y)
-            # print(grad_x, grad_y)   
 
-            # grad_x *= np.exp(1.22 * sigma_long**2) / 1.57
-            # grad_y *= np.exp(1.22 * sigma_long**2) / 1.57
             mean_intens = np.mean(image[chosen_pix] )
+            # mean_intens = np.sum(field_kernel * image ) / np.sum(field_kernel) 
 
             # print(grad_x * (field_x - field_center_x) )
-            res_image[chosen_pix] = mean_intens + grad_x * (field_x - field_center_x) + grad_y * (field_y - field_center_y)
-
-            min_th = 0
-            max_th = 255
-
-            res_image_tmp = res_image[chosen_pix]
-            res_image_tmp[res_image_tmp <= min_th] = min_th
-            res_image_tmp[res_image_tmp >= max_th] = max_th
-            res_image[chosen_pix] = res_image_tmp
-
+            res_image[chosen_pix] =  mean_intens + grad_x * (field_x - field_center_x) + \
+                                              grad_y * (field_y - field_center_y)
+            # res_image += field_kernel * ( mean_intens + grad_x * (x - field_center_x) + \
+            #                                  grad_y * (y - field_center_y) )
+            
+            
+            
+            weights += field_kernel
             global_counter += 1
+    
+    weights[weights < 0.1] = 0.1
+    #res_image = res_image / weights
+    print( np.mean(res_image) )
+    
+    
+    min_th = 0
+    max_th = 255
+
+    
+    res_image[res_image <= min_th] = min_th
+    res_image[res_image >= max_th] = max_th
+
+
+            
 
 
 
