@@ -16,18 +16,18 @@ t = np.linspace(0, 1, 900)
 
 ends = np.ones_like(t)
 cuted = t - t[0] - 5*sigma_ends
-ends[cuted<0] *=  np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
+ends[cuted<0] *= np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
 cuted = t - t[-1] + 5*sigma_ends
-ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
+ends[cuted>0] *= np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-u = np.cos(2*np.pi*15.5*t)
+u = np.cos(2*np.pi*5*t)
 u *= ends
 
 
 
 
-sigma1 = 0.07
-sigma2 = 0.09
+sigma1 = 0.02
+sigma2 = 0.05
 
 tker = np.linspace(-0.15, 0.15, 70)
 kernel = np.exp(-0.5 * (tker/sigma1)**2)/sigma1 - np.exp(-0.5 * (tker/sigma2)**2)/sigma2
@@ -52,8 +52,10 @@ deconv = deconv[:1-kernel.size]
 print(deconv.shape)
 
 
-plt.plot(deconv, color="green", linewidth=5)
+plt.plot(deconv, color="green", linewidth=2)
 plt.plot(u, color="red")
-#plt.ylim(-1, 1)
+
+
+plt.savefig("./results/conv_algorhythm.png")
 plt.show()
 
