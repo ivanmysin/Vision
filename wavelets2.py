@@ -5,6 +5,7 @@ import sys
 sys.path.append("../")
 import pycwt.pycwt as pycwt
 
+filename = "./results/wavelets/algo2/high_sine.png"
 
 t = np.linspace(0, 1, 900)
 dt = (t[1] - t[0])
@@ -16,10 +17,11 @@ ends[cuted<0] *=  np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
 cuted = t - t[-1] + 5*sigma_ends
 ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-u = np.cos(2*np.pi*15*t)
+w = 400 # np.linspace(2, 25, t.size) # 15 # 
+u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
 u *= ends
 
-frequencies = np.arange(1, 51, 1)
+frequencies = np.arange(1, 448, 1)
 wavelet_u_list = pycwt.cwt(u, dt, freqs=frequencies)
 
 wavelet_u = wavelet_u_list[0]
@@ -28,7 +30,7 @@ wave_u_abs = np.abs(wavelet_u) #*2/ u.size
 
 
 
-fig, axes = plt.subplots(nrows=4, sharex=True)
+fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(20, 10) )
 axes[0].plot(t, u)
 axes[0].set_xlim(0, 1)
 
@@ -45,8 +47,8 @@ for idx in range(30, u.size+30, 30):
     t_col_centered = tcol - tcol_c
     
    
-    wave_abs_cols = wave_u_abs[:, sl] * np.exp(-1000 * t_col_centered**2)
-    max_idx = np.unravel_index(np.argmax(wave_abs_cols), wave_abs_cols.shape)
+    wave_abs_cols = wave_u_abs[:, sl] 
+    max_idx = np.unravel_index(np.argmax(wave_abs_cols * np.exp(-100000 * t_col_centered**2)), wave_abs_cols.shape)
     # print( frequencies[max_idx[0]], t[sl][max_idx[1]] )
     
     axes[0].vlines(tcol[-1], -2, 2)
@@ -73,5 +75,5 @@ decode = pycwt.icwt(wavelet_u, wavelet_u_list[1], dt)
 axes[3].plot(t, decode)
 
 
-
+fig.savefig(filename, dpi=250)
 plt.show()
