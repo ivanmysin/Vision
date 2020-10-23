@@ -46,7 +46,7 @@ for idx in range(30, u.size+30, 30):
     
    
     wave_abs_cols = wave_u_abs[:, sl] 
-    max_idx = np.unravel_index(np.argmax(wave_abs_cols * np.exp(-100000 * t_col_centered**2) ), wave_abs_cols.shape)
+    max_idx = np.unravel_index(np.argmax(wave_abs_cols * np.exp(-0.0000001 * t_col_centered**2) ), wave_abs_cols.shape)
     # print( frequencies[max_idx[0]], t[sl][max_idx[1]] )
     
     axes[0].vlines(tcol[-1], -2, 2)
