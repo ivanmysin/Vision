@@ -5,7 +5,7 @@ import sys
 sys.path.append("../")
 import pycwt.pycwt as pycwt
 
-filename = "./results/wavelets/algo2/high_sine.png"
+filename = "./results/mexican_hats/1frequency1time/high_sine.png" # 
 
 t = np.linspace(0, 1, 900)
 dt = (t[1] - t[0])
@@ -17,20 +17,20 @@ ends[cuted<0] *=  np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
 cuted = t - t[-1] + 5*sigma_ends
 ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-w = 10 # np.linspace(2, 25, t.size) # 15 # 
+w = 400 # 10 #  np.linspace(2, 25, t.size)
 u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
 u *= ends
 
-frequencies = np.arange(1, 50, 1)
+frequencies = np.arange(1, 449, 1)
 wavelet_u_list = pycwt.cwt(u, dt, freqs=frequencies, wavelet='mexicanhat') 
 
-wavelet_u = hilbert( wavelet_u_list[0].real, axis=1)
+wavelet_u = hilbert( wavelet_u_list[0].real, axis=1) #  wavelet_u_list[0] #
 
 wave_u_abs = np.abs(wavelet_u) #*2/ u.size
 
 
 
-fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(5, 5) )
+fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(15, 15) )
 axes[0].plot(t, u)
 axes[0].set_xlim(0, 1)
 
@@ -69,7 +69,6 @@ for idx in range(30, u.size+30, 30):
     # wavelet_u[max_idx[0], sl] = wavelet_u[max_idx[0], sl] / wave_u_abs[max_idx[0], sl] * wave_abs_cols[max_idx[0], max_idx[1]]
     # wavelet_u[max_idx[0], sl][0:max_idx[1]] = 0 + 0*1j
     # wavelet_u[max_idx[0], sl][max_idx[1]+1 :] = 0 + 0*1j
-    
 
     phi_col_cent = np.angle(wave_u_col[max_idx[0], max_idx[1]])
     len_col_cent = wave_abs_cols[max_idx[0], max_idx[1]]
@@ -77,9 +76,8 @@ for idx in range(30, u.size+30, 30):
     tcol_max = tcol[max_idx[1]]
     
     wavelet_u[max_idx[0], sl] = len_col_cent * np.exp(1j*(freq_col*2*np.pi*(tcol-tcol_max) + phi_col_cent))
-    #  
-    
-    
+
+
 
     axes[3].vlines(tcol[-1], -2, 2, color="black")
     axes[3].scatter( tcol[max_idx[1]], [1.2, ], color="red", s=5 )
