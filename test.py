@@ -1,184 +1,60 @@
 import numpy as np
-import progect_lib2 as lib
-import matplotlib.pyplot as plt
-
-from scipy.ndimage import convolve, gaussian_filter
-
-
-x = np.linspace(-1, 1, 901)
-y = np.linspace(-1, 1, 201)
-
-dx = x[1] - x[0]
-xx, yy = np.meshgrid(x, y)
-
-# 255 * 
-
-phase0 = -0.5*np.pi
-image = 0.5 * (np.cos(2 * np.pi * 0.5 * xx + phase0) + 1) # 0.5 * (yy + 1) 
-sigmas = np.linspace(0.015, 0.2, 30)
-
-grad_xs, grad_ys = [], []
-for sigma_long in sigmas:
-
-    sigma_short = 0.5 * sigma_long
-
-    grad_x, grad_y = lib.get_gradient_by_DOG(image, sigma_long, sigma_short, xx, yy, 0.0, 0.0)
-    grad_xs.append(grad_x)
-    grad_ys.append(grad_y)
-    
-    # print(sigma_long)
-grad_xs = np.asarray(grad_xs)
-grad_ys = np.asarray(grad_ys)
-theor_grad = -np.sin(phase0)
-# print( theor_grad )
-res = np.gradient(image[100, :], dx)
-
-
-norm = grad_xs * np.exp(1.22 * sigmas**2) / 1.57
-
-fig, axes = plt.subplots(nrows=2, ncols=1)
-
-axes[0].plot(sigmas, norm)
-axes[1].plot(sigmas, grad_ys)
-
-#axes[0].plot(sigmas,  np.zeros_like(sigmas)+theor_grad, color="red")
-
-
-
-
-
-
-fig, axes = plt.subplots(nrows=2, ncols=1)
-# axes[0].pcolor(x, y, image, cmap='gray', vmin=0, vmax=1)
-axes[0].plot(x, image[100, :])
-axes[1].plot(x, res)
-axes[1].plot(x, np.zeros_like(x)+theor_grad, color="red")
-
-
-#fig.savefig("/home/ivan/PycharmProjects/Vision/results/dog/test_dog.png")
-
-
-plt.show()
-
-"""
-import numpy as np
-import progect_lib as lib
-import matplotlib.pyplot as plt
-from scipy.ndimage import convolve
-
-sigma_x = 15 * 0.15
-sigma_y = 15 * 0.3
-r_xy = 0
-fi = np.deg2rad(0)
-
-
-a = 0.5 / sigma_x**2
-b = 0.5 / sigma_y**2
-
-
-x = np.linspace(-1, 1, 100)
-y = np.linspace(-1, 1, 100)
-
-
-
-
-xx, yy = np.meshgrid(x, y)
-
-xv = xx * np.cos(fi) + yy * np.sin(fi)
-yv = -xx * np.sin(fi) + yy * np.cos(fi)
-
-gauss2d = np.exp(-a*xv**2 - b*yv**2 ) 
-gauss_grad_x = gauss2d * (-2*a*xv)
-gauss_grad_y = gauss2d * (-2*b*yv)
-
-
-sine = np.cos(2 * np.pi * xx * 5) 
-
-
-grad_sine_x = convolve(sine, gauss_grad_x, mode='constant')
-grad_sine_y = convolve(sine, gauss_grad_y, mode='constant')
-
-grad_ampl = np.sqrt(grad_sine_x**2 + grad_sine_y**2)
-
-fig, axes = plt.subplots(nrows=1, ncols=4)
-
-axes[0].pcolor(x, y, sine)
-
-axes[1].pcolor(x, y, grad_sine_x)
-axes[2].pcolor(x, y, grad_sine_y)
-axes[3].pcolor(x, y, grad_ampl)
-
-
-
-plt.show()
-"""
-
-
-
-"""
-import numpy as np
-import progect_lib as lib
 import matplotlib.pyplot as plt
 
 
-deg = np.linspace(0, 40, 100)  # градусов
-acc = 20 * 10**(-deg / 40)     # циклов на градус
+points = 100
 
-exp_hypec_size = 0.5 / acc
-my_hypec_size = np.geomspace(0.01, 1, 30 ) * 40  # 40 потому что считаем всесь обзор только 40 градусов
+xvect = np.arange(0, points) - (points - 1.0) / 2
+wp = 2 * np.pi * 0.03
 
-my_deg = np.linspace(0, 40, my_hypec_size.size)
-my_acc = 0.5 / my_hypec_size  # полцикла на градус
-
-
-
-fig, ax = plt.subplots(nrows=1, ncols=2)
-
-ax[0].plot(deg, acc, label="Experiment")
-ax[0].plot(my_deg, my_acc, label="Our model")
+dx = xvect[1] - xvect[0]
+sigma = 1.0 / wp
+a = 0.5 / sigma**2
 
 
-ax[1].plot(deg, exp_hypec_size, label="Experiment")
-ax[1].plot(my_deg, my_hypec_size, label="Our model")
+kernel = np.sqrt(a / np.pi) * np.exp(-a * xvect**2)  * (-2.0 * a * xvect)
+# kernel = kernel / np.sum(kernel**2)
+
+# print(np.sum(kernel))
+# print(np.sum(kernel**2))
+kernel_fft = 2 * np.abs( np.fft.rfft(kernel) ) / kernel.size
+
+freqs = np.fft.rfftfreq(kernel.size, xvect[1]-xvect[0])
+
+plt.plot(freqs, kernel_fft)
+plt.show()
 
 
+"""
+points = 100
+
+xvect = np.arange(0, points) - (points - 1.0) / 2
+wp = 2 * np.pi * 0.05
+
+a = np.sqrt(2) / wp
+A = 2 / (np.sqrt(3 * a) * (np.pi**0.25))
+wsq = a**2
+vec = np.arange(0, points) - (points - 1.0) / 2
+xsq = vec**2
+mod = (1 - xsq / wsq)
+gauss = np.exp(-xsq / (2 * wsq))
+
+ricker = A * mod * gauss
+
+ricker_fft = 2 * np.abs( np.fft.rfft(ricker) ) / ricker.size
+
+freqs = np.fft.rfftfreq(ricker.size, xvect[1]-xvect[0])
+print( np.mean(np.abs(np.fft.fft(ricker)**2) ))
+print( np.sum(ricker**2) )
 
 
-
-ax[0].legend()
-ax[1].legend()
-
-ax[0].set_title("Resolution")
-ax[1].set_title("Hypercoloumn size")
+wp = wp / 2 / np.pi
+R = 2 * (freqs**2) / (np.sqrt(np.pi) * wp**3) * np.exp(-(freqs**2/wp**2) )
+R = R / np.sum(R)
+ricker_fft = ricker_fft / np.sum(ricker_fft)
 
 
-ax[0].set_ylabel("Spatial frequency (Cyc/Deg)")
-ax[1].set_ylabel("Size (Deg)")
-
-for a in ax:
-    a.set_xlabel("Eccentricity (Deg)")
-
+plt.plot(freqs, ricker_fft)
+plt.plot(freqs, R)
 plt.show()
 """
-
-# image = np.random.rand(5, 5) # -x**2 + 1
-#
-# result = ndimage.maximum_filter(image, size=3, mode="constant", cval=1)
-#
-# print(image)
-# print(result)
-
-# A = -x**2 # np.random.rand(11)
-# K = 45
-# rollingmax = np.array([max(A[j:j+K]) for j in range(len(A)-K+1)])
-#
-# plt.subplot(211)
-# plt.plot(x, A)
-# plt.subplot(212)
-# plt.plot( x[K//2 : -K//2+1], rollingmax)
-#
-#
-# plt.show()
-
-
-# print (rollingmax)

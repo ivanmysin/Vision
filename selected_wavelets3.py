@@ -17,7 +17,7 @@ ends[cuted<0] *=  np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
 cuted = t - t[-1] + 5*sigma_ends
 ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-w = 400 # np.linspace(2, 25, t.size) # 15 # 15 # 
+w = 10 # np.linspace(2, 25, t.size) # 15 # 15 # 
 u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
 u *= ends
 
@@ -25,7 +25,7 @@ u *= ends
 """
 1.0, 9.0, 53.0, 225.0
 """
-frequencies = np.array([1.0, 9.0, 53.0, 255.0]) # np.arange(1, 50, 1)
+frequencies = np.arange(1, 50, 1) # np.array([1.0, 9.0, 53.0, 255.0]) # 
 wavelet_u_list = pycwt.cwt(u, dt, freqs=frequencies, wavelet='mexicanhat') 
 
 wavelet_u = hilbert( wavelet_u_list[0].real, axis=1)
@@ -67,7 +67,9 @@ for idx in range(30, u.size+30, 30):
         # print( np.sum (np.cos( np.angle(wave_u_col[freq_idx, :] ) - freq_col*2*np.pi*(tcol-tcol_max) + phi_col_cent) ) ) 
         # print("#############################################")
         
-        wavelet_u[freq_idx, sl] = len_col_cent * np.exp(1j*(freq_col*2*np.pi*(tcol-tcol_max) + phi_col_cent))
+        phases = freq_col*2*np.pi*(tcol-tcol_max) + phi_col_cent
+        wavelet_u[freq_idx, sl] = len_col_cent * (np.cos(phases) + 1j * np.sin(phases))
+        # np.exp(1j*(freq_col*2*np.pi*(tcol-tcol_max) + phi_col_cent))
 
     axes[3].vlines(tcol[-1], -2, 2, color="black")
     axes[3].scatter( tcol[max_idx], [1.2, ], color="red", s=5 )
@@ -76,7 +78,8 @@ wave_u_abs = np.abs(wavelet_u)
 axes[2].pcolor(t, frequencies, wave_u_abs, shading='auto')
 
 decode = pycwt.icwt(wavelet_u, wavelet_u_list[1], dt, wavelet='mexicanhat') 
-axes[3].plot(t, decode)
+#decode = np.abs(decode) # * np.cos(np.angle(decode))
+axes[3].plot(t, decode.real)
 
 
 fig.savefig(filename, dpi=250)

@@ -17,7 +17,7 @@ ends[cuted<0] *=  np.exp( -0.5*(cuted[cuted<0] /sigma_ends)**2 )
 cuted = t - t[-1] + 5*sigma_ends
 ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-w = 400 # 10 #  np.linspace(2, 25, t.size)
+w =  10 #  np.linspace(2, 25, t.size) # 400 #
 u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
 u *= ends
 

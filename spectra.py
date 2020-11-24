@@ -1,9 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-t = np.linspace(-10, 10, 1000)
+t = np.linspace(0, 1, 900)
 dt = t[1] - t[0]
-a = 100.5
+
+t = np.arange(-10, 10, dt)
+
+
+sigma = 0.2
+a = 1 / sigma**2
 freqs = np.fft.fftshift( np.fft.fftfreq(t.size, dt) )
 
 
@@ -66,5 +71,5 @@ ax[2, 1].set_xlim(0, None)
 ax[2, 1].set_ylim(0, None)
 ax[2, 1].legend()
 
-fig.savefig("./results/kernel_spectrums.png")
+# fig.savefig("./results/kernel_spectrums.png")
 plt.show()
