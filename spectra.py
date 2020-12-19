@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 t = np.linspace(0, 1, 900)
 dt = t[1] - t[0]
 
-t = np.arange(-10, 10, dt)
+t = np.arange(-0.5, 0.5, dt)
 
 
-sigma = 0.2
+sigma = 0.0005
 a = 1 / sigma**2
 freqs = np.fft.fftshift( np.fft.fftfreq(t.size, dt) )
 

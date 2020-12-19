@@ -82,5 +82,5 @@ decode = pycwt.icwt(wavelet_u, wavelet_u_list[1], dt, wavelet='mexicanhat')
 axes[3].plot(t, decode.real)
 
 
-fig.savefig(filename, dpi=250)
+# fig.savefig(filename, dpi=250)
 plt.show()

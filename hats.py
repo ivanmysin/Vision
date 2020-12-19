@@ -7,7 +7,7 @@ def get_gaussian_derivative(x, sigma, order=1):
 
     a = 1 / sigma**2
     if order == 1:
-        kernel = np.exp(-a * x**2) * -2 * a * x
+        kernel = np.exp(-a * x**2) * -2 *  x * a # / np.sqrt(2 * np.pi)
     elif order == 2:
         kernel = 2 * np.exp(-a * x**2) * ( 1 - 2 * a * x**2)
 
@@ -23,18 +23,54 @@ def get_signal():
     cuted = t - t[-1] + 5*sigma_ends
     ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
-    w = 50 #  np.linspace(2, 25, t.size)
+    w = 5 #  np.linspace(2, 25, t.size)
     u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
     u *= ends
     
     return t, u
 
-x = np.linspace(-10, 10, 200)
-sigma = 0.2
-dg = get_gaussian_derivative(x, sigma, order=1)
+def myfft_convolve(signal, kernel, mode="same", isnormkernel=True):
+    
+    n1 = signal.size
+    n2 = kernel.size
+    N = n1 + n2 - 1
+
+
+    x1 = np.append(signal, np.zeros(N - n1)  )
+    x2 = np.append(kernel, np.zeros(N - n2)  )
+    
+    kernel_fft = np.fft.fft(x2)
+    if isnormkernel:
+        # kernel_fft = kernel_fft / np.sum(kernel_fft.real**2 + kernel_fft.imag**2)
+        pass
+        
+    conv = np.fft.ifft( np.fft.fft(x1) * kernel_fft ).real
+    
+    if mode == "same":
+        Nres = n1 # max([n1, n2])
+        Ndelited = int((N - Nres)//2)
+        conv = conv[Ndelited : Ndelited+Nres]
+    
+    elif mode == "valid":
+        nmax = max([n1, n2])
+        nmin = min([n1, n2])
+        Nres = nmax - nmin + 1
+        Ndelited = int((N - Nres)//2)
+        conv = conv[Ndelited : Ndelited+Nres]
+        
+    return conv
+
+
+
 t, signal = get_signal()
-sig_imag = np.convolve(dg, signal, mode="same")
-sig_imag = sig_imag * np.mean(sig_imag**2)
+dt = t[1] - t[0]
+print(dt)
+x = np.arange(-0.5, 0.5, dt) # np.linspace(-0.1, 0.1, 900)
+sigma = 0.0005
+dg = get_gaussian_derivative(x, sigma, order=1)
+
+sig_imag = myfft_convolve(signal, dg, mode="same")
+
 res = np.sqrt(signal**2 + sig_imag**2)
 
 theor_res = np.abs(hilbert(signal)  )
