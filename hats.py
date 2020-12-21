@@ -7,7 +7,7 @@ def get_gaussian_derivative(x, sigma, order=1):
 
     a = 1 / sigma**2
     if order == 1:
-        kernel = np.exp(-a * x**2) * -2 *  x * a # / np.sqrt(2 * np.pi)
+        kernel = np.exp(-0.5 * x**2 / sigma**2) * -1 *  x / sigma**2 / np.sqrt(2 * np.pi * sigma) 
     elif order == 2:
         kernel = 2 * np.exp(-a * x**2) * ( 1 - 2 * a * x**2)
 
@@ -24,7 +24,7 @@ def get_signal():
     ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
     w = 5 #  np.linspace(2, 25, t.size)
-    u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
+    u = np.cos(2*np.pi*w*t) #+ 0.9*np.cos(2*np.pi*3*t)
     u *= ends
     
     return t, u
@@ -41,7 +41,7 @@ def myfft_convolve(signal, kernel, mode="same", isnormkernel=False):
     
     kernel_fft = np.fft.fft(x2)
     if isnormkernel:
-        # kernel_fft = kernel_fft / np.sum(kernel_fft.real**2 + kernel_fft.imag**2)
+        kernel_fft = kernel_fft / np.sqrt( np.mean(kernel_fft.real**2 + kernel_fft.imag**2) )
         pass
         
     conv = np.fft.ifft( np.fft.fft(x1) * kernel_fft ).real
@@ -65,15 +65,18 @@ def myfft_convolve(signal, kernel, mode="same", isnormkernel=False):
 t, signal = get_signal()
 dt = t[1] - t[0]
 print(dt)
-x = np.arange(-5, 5, dt) # np.linspace(-0.1, 0.1, 900)
-sigma = 0.05
+x = np.arange(-0.5, 0.5, dt) # np.linspace(-0.1, 0.1, 900)
+sigma = 0.02
 dg = get_gaussian_derivative(x, sigma, order=1)
 fig, ax = plt.subplots(ncols=1, nrows=1)
 ax.plot(x, dg)
 
+# dg = dg / np.sqrt(np.sum(dg**2)) / 7.5 # * np.sqrt(2*sigma)
 print(np.sum(dg**2))
 
 sig_imag = myfft_convolve(signal, dg, mode="same")
+# sig_imag = sig_imag / 7.5
+
 
 res = np.sqrt(signal**2 + sig_imag**2)
 
