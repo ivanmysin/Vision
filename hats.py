@@ -29,7 +29,7 @@ def get_signal():
     
     return t, u
 
-def myfft_convolve(signal, kernel, mode="same", isnormkernel=True):
+def myfft_convolve(signal, kernel, mode="same", isnormkernel=False):
     
     n1 = signal.size
     n2 = kernel.size
@@ -65,9 +65,13 @@ def myfft_convolve(signal, kernel, mode="same", isnormkernel=True):
 t, signal = get_signal()
 dt = t[1] - t[0]
 print(dt)
-x = np.arange(-0.5, 0.5, dt) # np.linspace(-0.1, 0.1, 900)
-sigma = 0.0005
+x = np.arange(-5, 5, dt) # np.linspace(-0.1, 0.1, 900)
+sigma = 0.05
 dg = get_gaussian_derivative(x, sigma, order=1)
+fig, ax = plt.subplots(ncols=1, nrows=1)
+ax.plot(x, dg)
+
+print(np.sum(dg**2))
 
 sig_imag = myfft_convolve(signal, dg, mode="same")
 
