@@ -5,7 +5,7 @@ import sys
 sys.path.append("../")
 import pycwt.pycwt as pycwt
 
-filename = "./results/mexican_hats/1frequency1time/high_sine.png" # 
+filename = "./results/mexican_hats/1frequency1time/lowfrequency_sine.png" #
 
 t = np.linspace(0, 1, 900)
 dt = (t[1] - t[0])
@@ -21,10 +21,11 @@ w =  10 #  np.linspace(2, 25, t.size) # 400 #
 u = np.cos(2*np.pi*w*t) # + 0.9*np.cos(2*np.pi*5*t)
 u *= ends
 
-frequencies = np.arange(1, 449, 1)
+frequencies = np.arange(1, 50, 1)
 wavelet_u_list = pycwt.cwt(u, dt, freqs=frequencies, wavelet='mexicanhat') 
 
-wavelet_u = hilbert( wavelet_u_list[0].real, axis=1) #  wavelet_u_list[0] #
+# wavelet_u = hilbert( wavelet_u_list[0].real, axis=1) #  wavelet_u_list[0] #
+wavelet_u = wavelet_u_list[0] #  wavelet_u_list[0] #
 
 wave_u_abs = np.abs(wavelet_u) #*2/ u.size
 
