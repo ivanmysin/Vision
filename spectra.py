@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 # plt.rc('text', usetex=True)
 
 
-sigmas = [0.02, 0.05, 0.1, 0.2]
+sigmas = [0.002, 0.2]#  0.05, 0.1, 0.2]
 
 fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(20, 10))
 for sigma in sigmas:

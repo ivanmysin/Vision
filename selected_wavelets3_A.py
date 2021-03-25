@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from scipy.signal import hilbert
 import sys
 sys.path.append("../")
-import pycwt #.pycwt as pycwt
-
+import pycwt.pycwt as pycwt
+from hilb_via_dgs import HilbertByGaussianDerivative
 filename = "./results/mexican_hats/fixed_frequencies_and_times/demo_sine.png"
-
+file_saving_ws = "./results/weights_for_gaussian_derivatives_sum.npy"
 ###                        Исходный сигнал
 t = np.linspace(0, 1, 900)
 dt = (t[1] - t[0])
@@ -23,6 +23,10 @@ w = 47 # np.linspace(2, 25, t.size) # 15 # 15 #
 u =  10*np.cos(2*np.pi*w*t*t) + 7*np.cos(2*np.pi*25.6*t) + 3*np.cos(2*np.pi*5*t)
 u *= ends
 
+
+myHilbert = HilbertByGaussianDerivative(30, file_saving_ws, nsigmas=8, isplotarox=False)
+
+u = u + 1j*myHilbert.hilbert(u)
 ###                        Кодирование: вейвлет-преобразование сигнала
 # 1.0, 9.0, 53.0, 225.0
 #frequencies = np.arange(0.1, 200, 20) # np.array([1.0, 9.0, 53.0, 255.0]) # np.geomspace(1, 450, num=8)
@@ -35,8 +39,8 @@ wave, scales, freqs, coi, fft, fftfreqs = pycwt.cwt(u, dt, freqs=frequencies, wa
 
 ###                        Кодирование: достраивание мнимой части сигнала
 ##########################################
-Hilbert_wave = hilbert(wave.real, axis=1)
-wave.imag = Hilbert_wave.imag
+# Hilbert_wave = hilbert(wave.real, axis=1)
+# wave.imag = Hilbert_wave.imag
 ##########################################
 
 fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(15, 15) )
