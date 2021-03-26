@@ -5,7 +5,7 @@ import sys
 sys.path.append("../")
 import pycwt.pycwt as pycwt
 from hilb_via_dgs import HilbertByGaussianDerivative
-filename = "./results/mexican_hats/fixed_frequencies_and_times/demo_sine.png"
+filename = "./results/demo_sine_2p.png"
 file_saving_ws = "./results/weights_for_gaussian_derivatives_sum.npy"
 ###                        Исходный сигнал
 t = np.linspace(0, 1, 900)
@@ -43,28 +43,13 @@ wave, scales, freqs, coi, fft, fftfreqs = pycwt.cwt(u, dt, freqs=frequencies, wa
 # wave.imag = Hilbert_wave.imag
 ##########################################
 
-fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(15, 15) )
-axes[0].plot(t, u)
-
-tcentsd = t[15::30]
-axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
-axes[0].set_xlim(0, 1)
-axes[0].set_title("Сигнал (10 Гц)")
-
-c = axes[1].pcolor(t, frequencies, wave.real, shading='auto')
-axes[1].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
-axes[1].set_ylabel("Частота, Гц")
-axes[1].set_title("Вейвлет спектр по мексиканским шляпам")
-#fig.colorbar(c, ax=axes[1])
-
-"""
-"""
 ###                        Кодирование и раскодирование для каждой ГК
 nPW = u.size//30                        # число ГК
 phi_col_cent = np.zeros((scales.size, nPW)) # to be memorized in ГК
 len_col_cent = np.zeros((scales.size, nPW)) # to be memorized in ГК
 peak_freq    = np.zeros((scales.size, nPW)) # to be memorized in ГК
 phi_col_edge = np.zeros((scales.size, nPW)) # to be memorized in ГК
+
 for iPW in range(1, nPW, 1):            # номер ГК
     idx = iPW*30                        # индекс правой границы ГК
     print('номер ГК', iPW)
@@ -75,14 +60,14 @@ for iPW in range(1, nPW, 1):            # номер ГК
     #wave_u_col = wave[:, sl]                # вейвлет-преобразование в лок. координатах
     #wave_abs_cols = np.abs(wave[:, sl])     # амплитуда аналитического сигнала в лок. координатах
     
-    axes[0].vlines(tcol[-1], -2, 2, color="black")
+
     # axes[0].scatter( tcol[max_idx], [1.2, ], color="red", s=5 )
    
     tcol_max = tcol[max_idx]    # локальная координата центра ГК 
 ### Кодирование: редукция - запоминание фаз и амплитуд для каждой частоты и номера главной частоты
     for freq_idx, freq_col in enumerate(frequencies): # индекс частоты и частота 
         
-        phi_col_cent[freq_idx, iPW] = np.angle(wave[freq_idx, sl][max_idx])  # фаза в центре ГК
+        phi_col_cent[freq_idx, iPW] = np.angle(wave[freq_idx, sl][max_idx+1])  # фаза в центре ГК
         len_col_cent[freq_idx, iPW] = np.mean(np.abs(wave[freq_idx, sl]))    # среднее по ГК
         phi_col_edge[freq_idx, iPW] = np.angle(wave[freq_idx, sl][max_idx-1])        # фаза на левой границе ГК
         
@@ -92,9 +77,11 @@ for iPW in range(1, nPW, 1):            # номер ГК
         ##sp = pycwt.cwt(x, dt, freqs=frequencies, wavelet='mexicanhat')
         #freq = np.linspace(0, 1 / (tcol[1] - tcol[0]), t[sl].size)
         #peak_freq[freq_idx, iPW] = freq[np.argmax( np.abs(sp) )]
-        peak_freq[freq_idx, iPW] = (
-                                    phi_col_cent[freq_idx, iPW] - phi_col_edge[freq_idx, iPW]
-                                   ) / (tcol[max_idx] - tcol[max_idx-1]) / 2 / np.pi
+
+        phase_diff = phi_col_cent[freq_idx, iPW] - phi_col_edge[freq_idx, iPW]
+        if phase_diff > np.pi: phase_diff -= 2*np.pi
+        if phase_diff < -np.pi: phase_diff += 2*np.pi
+        peak_freq[freq_idx, iPW] = phase_diff  / (tcol[max_idx+1] - tcol[max_idx-1]) / 2 / np.pi
         #print(freq_idx, peak_freq[freq_idx, iPW])
         
     #imain_len_col_cent = np.argmax(len_col_cent)                        # номер главной частоты
@@ -115,25 +102,44 @@ for iPW in range(1, nPW, 1):     # номер ГК
         wavelet_u_restored[freq_idx, sl].real = len_col_cent[freq_idx, iPW] * np.cos(phases) 
         wavelet_u_restored[freq_idx, sl].imag = len_col_cent[freq_idx, iPW] * np.sin(phases)
 
-    axes[3].vlines(tcol[-1], -2, 2, color="black")
-    axes[3].scatter( tcol[max_idx], [1.2, ], color="red", s=5 )
 
+###############################################################################
+decode = pycwt.icwt(wavelet_u_restored, scales, dt, wavelet='mexicanhat')
+
+# decode = np.abs(decode) # * np.cos(np.angle(decode))
+decode2 = pycwt.icwt(wave, scales, dt, wavelet='mexicanhat')
+
+###############################################################################
+
+
+fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(15, 15) )
+axes[0].plot(t, u.real)
+
+tcentsd = t[15::30]
+axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
+axes[0].set_xlim(0, 1)
+axes[0].set_title("Сигнал (10 Гц)")
+axes[0].vlines(t[30::30], -2, 2, color="black")
+
+
+
+c = axes[1].pcolor(t, frequencies, wave.real, shading='auto')
+axes[1].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
+axes[1].set_ylabel("Частота, Гц")
+axes[1].set_title("Вейвлет спектр по мексиканским шляпам")
+#fig.colorbar(c, ax=axes[1])
 axes[2].pcolor(t, frequencies, wavelet_u_restored.real, shading='auto')
 axes[2].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
 axes[2].set_ylabel("Frequency, Hz")
 axes[2].set_title("Восстановленный вейвлет спектр")
 
-###############################################################################
-decode = pycwt.icwt(wavelet_u_restored, scales, dt, wavelet=#'morlet')
-                                                            'mexicanhat')
-###############################################################################
-# decode = np.abs(decode) # * np.cos(np.angle(decode))
-decode2 = pycwt.icwt(wave,              scales, dt, wavelet=#'morlet')
-                                                            'mexicanhat')
-axes[3].plot(t, decode, t, decode2, t, u)
+axes[3].plot(t, decode, t, decode2, t, u.real)
 #axes[3].plot(tcol, np.cos(phases), tcol, np.cos(phases_true))
 axes[3].set_title("Оранжевый - точно восстановленный, синий - восстановленный с редукцией по ГК, зелёный - исходный")
 
+axes[3].vlines(t[30::30], -2, 2, color="black")
+axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
 
-# fig.savefig(filename, dpi=250)
+
+fig.savefig(filename, dpi=250)
 plt.show()

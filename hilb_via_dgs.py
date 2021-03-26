@@ -26,7 +26,7 @@ def hilbert_dgs_diff(w, x, sigmas):
 class HilbertByGaussianDerivative:
 
     def __init__(self, Npoints, file_saving_ws, nsigmas=8, isplotarox=False):
-        sigminimum = 0.53
+        sigminimum = 0.05 # 0.53
         sigmaximum = 0.005
         self.x = np.linspace(-0.5, 0.5, Npoints)
 
@@ -41,7 +41,7 @@ class HilbertByGaussianDerivative:
         np.save(self.file_saving_ws, self.dg_weiths)
 
         self.H_aproxed = sum_gaussian_derivaries(self.dg_weiths , self.x, self.sigmas)  #
-        self.H_aproxed_normed =  self.H_aproxed / np.sqrt(np.sum(self.H_aproxed ** 2))
+        self.H_aproxed_normed = self.H_aproxed / np.sqrt(np.sum(self.H_aproxed ** 2))
 
 
 
