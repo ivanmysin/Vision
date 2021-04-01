@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.signal import convolve2d
+
+
 class HilbertByGaussianDerivative2D:
 
     def __init__(self, Npoints, file_saving_ws, nsigmas=8, isplotarox=False):
