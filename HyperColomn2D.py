@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
-from scipy.signal import convolve2d as convolve2d
+from scipy.signal import oaconvolve as convolve2d
 
 class HyperColomn:
     def __init__(self, centers, xx, yy, angles, sigmas, frequencies=None):
@@ -35,8 +35,8 @@ class HyperColomn:
             self.frequencies = frequencies
 
         self.mexican_hats = []
-        self.hilbert_aproxed_f = []
-        self.hilbert_aproxed_b = []
+        self.hilbert_aproxed = []
+
 
         self.rotate_xy()
         self.compute_kernels()
@@ -60,18 +60,13 @@ class HyperColomn:
     def compute_kernels(self):
         for phi_idx in range(len(self.angles)):
 
-            xx = self.rot_xx[phi_idx] + self.dx
+            xx = self.rot_xx[phi_idx]
             yy = self.rot_yy[phi_idx]
             H_aprox = self.sum_gaussian_derivaries(self.dg_weiths, xx, yy, self.sigmas)
             H_aprox = H_aprox / np.sqrt(np.sum(H_aprox**2))
 
-            self.hilbert_aproxed_f.append(H_aprox)
+            self.hilbert_aproxed.append(H_aprox)
 
-            xx = self.rot_xx[phi_idx] - self.dx
-            H_aprox = self.sum_gaussian_derivaries(self.dg_weiths, xx, yy, self.sigmas)
-            H_aprox = H_aprox / np.sqrt(np.sum(H_aprox**2))
-
-            self.hilbert_aproxed_b.append(H_aprox)
 
             self.mexican_hats.append([])
             for freq in self.frequencies:
@@ -108,29 +103,36 @@ class HyperColomn:
         U_restored = np.zeros_like(U)
         
         for phi_idx in range(len(self.angles)):
-            # u_imag_f = np.sum(U * self.hilbert_aproxed_f[phi_idx])
-            # u_imag_b = np.sum(U * self.hilbert_aproxed_b[phi_idx])
-            u_imag = convolve2d(U, self.hilbert_aproxed_b[phi_idx], mode="same")
+            u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
 
             u = U + 1j*u_imag
 
-            freq_idx = 8
-            dx = self.dx*np.cos(self.angle[phi_idx]) - self.dy*np.sin(self.angle[phi_idx])
-            # cent_x_idx_b = np.argmin( np.abs(-dx) )
-            # cent_x_idx_f = np.argmin( np.abs(dx) )
+
+            dx = self.dx*np.cos(self.angles[phi_idx])
+            dy = self.dx*np.sin(self.angles[phi_idx])
 
 
-            # for freq_idx, freq in enumerate(self.frequencies): # !!!!!!!1
-            Ucoded = convolve2d(u, self.mexican_hats[phi_idx][freq_idx], mode="same")
-            phase = np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx])
+            cent_x_idx_b = np.argmin( (self.xx - dx)**2 + (self.yy - dy)**2 )
+            cent_x_idx_f = np.argmin( (self.xx + dx)**2 + (self.yy - dy)**2 )
 
+            peak_freqs = []
+            for freq_idx, freq in enumerate(self.frequencies): # !!!!!!!
+                if freq > 1 / (2*dx): continue
 
+                Ucoded = convolve2d(u, self.mexican_hats[phi_idx][freq_idx], mode="same")
+                phase2 = np.angle(Ucoded.ravel()[cent_x_idx_b])
+                phase1 = np.angle(Ucoded.ravel()[cent_x_idx_f])
 
+                phase_diff = phase1 - phase2
+                if phase_diff < -np.pi: phase_diff += 2*np.pi
+                if phase_diff >  np.pi: phase_diff -= 2*np.pi
 
+                peak_freq = phase_diff / (2 * dx) # peak_freq
+                peak_freqs.append(peak_freq)
 
-
-            print(phase)
-            break
+                U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] )
+                # break
+            #break
         return U_restored
 
 if __name__ == '__main__':
@@ -138,7 +140,7 @@ if __name__ == '__main__':
 
     centers = [0, 0]
     centers = [0, 0]
-    angles = [0, 0.5*np.pi]
+    angles = np.linspace(-np.pi, np.pi, 6) #[0, 0.5*np.pi] #
     Len_y = 100
     Len_x = 100
 
@@ -147,12 +149,22 @@ if __name__ == '__main__':
     sigmaximum = 0.005
     sigmas = np.linspace(sigminimum, sigmaximum, nsigmas)
     xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
-    image = np.cos(2*np.pi*xx*5)
+
+    image = np.zeros_like(xx)
+    for idx in range(3):
+        f = np.random.rand() * 20
+        an =  np.random.rand() * 2*np.pi - np.pi
+        xx_ = xx * np.cos(an) - yy * np.sin(an)
+        image += np.cos(2 * np.pi * xx_ * f)
 
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas)
-    hc.transform(image)
+    image_restored = hc.transform(image)
 
-    plt.pcolormesh(hc.x, hc.y, hc.mexican_hats[1][8], cmap="rainbow", shading="auto")
+    # plt.pcolormesh(hc.x, hc.y, hc.mexican_hats[1][8], cmap="rainbow", shading="auto")
+    plt.figure()
+    plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
+    plt.figure()
+    plt.pcolormesh(hc.x, hc.y, image_restored, cmap="rainbow", shading="auto")
 
     plt.show()
