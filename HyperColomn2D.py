@@ -101,7 +101,7 @@ class HyperColomn:
     def transform(self, U):
         
         U_restored = np.zeros_like(U)
-        print(self.dx)
+        # print(self.dx)
         for phi_idx in range(len(self.angles)):
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
 
@@ -138,7 +138,7 @@ class HyperColomn:
                 peak_freq = phase_diff / (2 * dx) # peak_freq
                 peak_freqs.append(peak_freq)
 
-                U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] )
+                U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] + phase2 )
                 # break
             #break
         return U_restored
