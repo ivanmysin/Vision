@@ -115,6 +115,7 @@ class HyperColomn:
             cent_x_idx_b = np.argmin( (self.xx - dx)**2 + (self.yy - dy)**2 )
             cent_x_idx_f = np.argmin( (self.xx + dx)**2 + (self.yy + dy)**2 )
 
+            dx_dist = 2 * np.sqrt( dx**2 + dy**2 )
             # plt.figure()
             # # plt.pcolormesh(self.x, self.y, U_restored, cmap="rainbow", shading="auto")
             # plt.scatter(self.xx.ravel()[cent_x_idx_b], self.yy.ravel()[cent_x_idx_b])
@@ -135,7 +136,7 @@ class HyperColomn:
                 if phase_diff < -np.pi: phase_diff += 2*np.pi
                 if phase_diff >  np.pi: phase_diff -= 2*np.pi
 
-                peak_freq = phase_diff / (2 * dx) # peak_freq
+                peak_freq = phase_diff / dx_dist # (2 * dx) # peak_freq
                 peak_freqs.append(peak_freq)
 
                 U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] + phase2 )
@@ -148,7 +149,9 @@ if __name__ == '__main__':
 
     centers = [0, 0]
     centers = [0, 0]
-    angles = np.linspace(-np.pi, np.pi, 6, endpoint=False) #[0, 0.5*np.pi] #
+    # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
+    angles = np.linspace(-np.pi, np.pi, 8, endpoint=False)
+
     print(angles)
     Len_y = 100
     Len_x = 100
@@ -160,14 +163,13 @@ if __name__ == '__main__':
     xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
 
     image = np.zeros_like(xx)
-    for idx in range(2):
-        f = np.random.rand() * 20
+    for idx in range(1):
+        f = 6.4  # np.random.rand() * 20
         # an = np.random.rand() * 2*np.pi - np.pi
-        an = np.random.choice(angles)
+        an = np.pi  # np.random.choice(angles)
 
         xx_ = xx * np.cos(an) - yy * np.sin(an)
         image += np.cos(2 * np.pi * xx_ * f)
-
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas)
     image_restored = hc.transform(image)
@@ -182,7 +184,6 @@ if __name__ == '__main__':
     #     plt.figure()
     #     plt.pcolormesh(hc.x, hc.y, h_apriximated, cmap="rainbow", shading="auto")
     #     plt.show()
-
 
     plt.figure()
     plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
