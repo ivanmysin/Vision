@@ -98,11 +98,15 @@ class HyperColomn:
 
         return E
 
-    def transform(self, U):
+    def encode(self, U):
         
-        U_restored = np.zeros_like(U)
+        # U_restored = np.zeros_like(U)
         # print(self.dx)
+        Encoded = []
+
         for phi_idx in range(len(self.angles)):
+            Encoded.append([])
+
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
 
             u = U + 1j*u_imag
@@ -139,10 +143,37 @@ class HyperColomn:
                 peak_freq = phase_diff / dx_dist # (2 * dx) # peak_freq
                 peak_freqs.append(peak_freq)
 
-                U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] + phase2 )
+                encoded_dict = {
+                    "peak_freq" : peak_freq,
+                    "phi_0" : np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx]),
+                    "abs" : np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx])
+                }
+                Encoded[-1].append(encoded_dict)
+
+                # U_restored += np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]) * np.cos( peak_freq * self.rot_xx[phi_idx] + phase2 )
                 # break
             #break
+        return Encoded
+
+
+
+
+    def decode(self, Encoded):
+        U_restored = np.zeros_like(self.xx)
+
+        for phi_idx, angle_encoded in enumerate(Encoded):
+            for freq_idx, freq_encoded in enumerate(angle_encoded):
+
+                A = freq_encoded["abs"]
+                peak_freq = freq_encoded["peak_freq"]
+                phi_0 = freq_encoded["phi_0"]
+
+                U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] + phi_0)
+
         return U_restored
+
+
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -150,7 +181,7 @@ if __name__ == '__main__':
     centers = [0, 0]
     centers = [0, 0]
     # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
-    angles = np.linspace(-np.pi, np.pi, 8, endpoint=False)
+    angles = np.linspace(-np.pi, np.pi, 2, endpoint=False)
 
     print(angles)
     Len_y = 100
@@ -172,7 +203,9 @@ if __name__ == '__main__':
         image += np.cos(2 * np.pi * xx_ * f)
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas)
-    image_restored = hc.transform(image)
+
+    Encoded = hc.encode(image)
+    image_restored = hc.decode(Encoded)
 
     # for hats in hc.mexican_hats:
     #     for hat in hats:
