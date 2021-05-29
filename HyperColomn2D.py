@@ -128,7 +128,7 @@ class HyperColomn:
             # plt.hlines(0, -0.1, 0.1)
             # plt.show()
 
-            peak_freqs = []
+            #peak_freqs = []
             for freq_idx, freq in enumerate(self.frequencies):
                 if freq > 1 / (2*dx): continue
 
@@ -141,7 +141,7 @@ class HyperColomn:
                 if phase_diff >  np.pi: phase_diff -= 2*np.pi
 
                 peak_freq = phase_diff / dx_dist # (2 * dx) # peak_freq
-                peak_freqs.append(peak_freq)
+                # peak_freqs.append(peak_freq)
 
                 encoded_dict = {
                     "peak_freq" : peak_freq,
