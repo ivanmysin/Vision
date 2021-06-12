@@ -1,48 +1,38 @@
 import numpy as np
-from scipy.signal import hilbert
 import matplotlib.pyplot as plt
 
+Len_y = 200
+Len_x = 200
 
-x = np.array([1, 2, 3, 4])
+xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
+ws = 6.4
+sigma = 1 / (np.sqrt(2) * np.pi * ws)
 
-y = np.fft.fft(x)
+an = np.pi / 4
+xx_ = xx * np.cos(an) - yy * np.sin(an)
+yy_ = xx * np.sin(an) + yy * np.cos(an)
+image = np.cos(2 * np.pi * xx * ws)
 
-print(y)
-"""
-def myfft_convolve(x1, x2, mode="full"):
-    
-    n1 = x1.size
-    n2 = x2.size
-    N = n1 + n2 - 1
+sigma_x = sigma
+sigma_y = 0.5 * sigma_x
+ricker1 = (-1 + xx_**2/sigma_x**2) * np.exp(-yy_**2/(2*sigma_y**2) - xx_**2/(2*sigma_x**2))/sigma_x**2
+ricker1 = ricker1 / np.sqrt(np.sum(ricker1**2))
+# 0.005 * (4 - xx_**2 / sigma**2) * np.exp(-(xx_**2 + 4 * yy_**2) / (8 * sigma**2)) / sigma**4
+ricker2 = (-1 + xx**2/sigma_x**2) * np.exp(-yy**2/(2*sigma_y**2) - xx**2/(2*sigma_x**2))/sigma_x**2
+# 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
+ricker2 = ricker2 / np.sqrt(np.sum(ricker2**2))
 
+fig, axes = plt.subplots(ncols=3)
+axes[0].pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
+axes[1].pcolormesh(xx[0, :], yy[:, 0], ricker1, cmap="rainbow", shading="auto")
+axes[2].pcolormesh(xx[0, :], yy[:, 0], ricker2, cmap="rainbow", shading="auto")
 
-    x1 = np.append(x1, np.zeros(N - n1)  )
-    x2 = np.append(x2, np.zeros(N - n2)  )
+fig, axes = plt.subplots(ncols=3)
+axes[0].plot(xx[0, :], image[100, :] )
+axes[0].plot(xx[0, :], -ricker2[100, :]/np.max(-ricker2[100, :]) )
 
-    conv = np.fft.ifft( np.fft.fft(x1) * np.fft.fft(x2) ).real
-    
-    if mode == "same":
-        Nres = max([n1, n2])
-        Ndelited = int((N - Nres)//2)
-        conv = conv[Ndelited : Ndelited+Nres]
-    
-    elif mode == "valid":
-        nmax = max([n1, n2])
-        nmin = min([n1, n2])
-        Nres = nmax - nmin + 1
-        Ndelited = int((N - Nres)//2)
-        conv = conv[Ndelited : Ndelited+Nres]
-        
-    return conv
+axes[1].plot(xx[0, :], image[100, :] )
+axes[1].plot(xx[0, :], -ricker1[100, :]/np.max(-ricker1[100, :]))
 
-a = np.linspace(0.2, 0.5, 15) 
-b = np.arange(1.0, 10.0, 0.5) 
-
-
-c1 = np.convolve(a, b, mode="valid")
-c2 = myfft_convolve(a, b, mode="valid")
-
-print(c1)
-print(c2)
-
-"""
+print( np.sum(ricker1*image), np.sum(ricker2*image) )
+plt.show()

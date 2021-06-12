@@ -82,9 +82,12 @@ class HyperColomn:
 
 
     def get_rickers(self, sigma, xx, yy):
-        ricker = 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
+        #ricker = 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
+        sigma_x = sigma
+        sigma_y = 0.5 * sigma_x
+        ricker = (-1 + xx**2 / sigma_x**2) * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
 
-        ricker = ricker / np.sqrt(np.sum(ricker**2))
+        ricker = -ricker / np.sqrt(np.sum(ricker**2))
         return ricker
 
     def get_gaussian_derivative(self, sigma, xx, yy):
@@ -188,6 +191,9 @@ class HyperColomn:
             phi_idx_ang = 0
             Vavg = 0
 
+            peak_freqs = []
+            phi_0s = []
+
             for phi_idx, angle_encoded in enumerate(freq_encoded):
                 A = angle_encoded["abs"]
                 peak_freq = angle_encoded["peak_freq"]
@@ -199,8 +205,8 @@ class HyperColomn:
                     U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] + phi_0)
 
                 elif self.params["decode"]["use_angle"] == "max":
-                    if 2*peak_freq < self.frequencies[freq_idx] or peak_freq > 2*self.frequencies[freq_idx]:
-                        A = 0
+                    # if 2*peak_freq < self.frequencies[freq_idx] or peak_freq > 2*self.frequencies[freq_idx]:
+                    #     A = 0
 
                     if A > Aang:
                         Aang = A
@@ -210,10 +216,12 @@ class HyperColomn:
 
                 elif self.params["decode"]["use_angle"] == "avg":
                     Vavg += A * np.exp(1j * self.angles[phi_idx])
+                    peak_freqs.append(peak_freq)
+                    phi_0s.append(phi_0)
 
             if self.params["decode"]["use_angle"] == "max":
-                #if peak_freq_ang > 20 or peak_freq_ang < -20 or Aang < 12681700: continue
-                # print(self.frequencies[freq_idx], peak_freq_ang, Aang)
+                #if peak_freq_ang < 5: continue
+                print( self.frequencies[freq_idx], peak_freq_ang, Aang, self.angles[phi_idx_ang] )
 
 
                 #peak_freq_ang = np.abs(peak_freq_ang)
@@ -223,13 +231,17 @@ class HyperColomn:
                 Vavg = Vavg / len(self.angles)
                 angle_avg = np.angle(Vavg)
 
-                phi_idx_ang = np.argmax( np.exp(np.cos(angle_avg - self.angles) ) )
+                max_idx_ang = np.argmax( np.exp(np.cos(angle_avg - self.angles) ) )
 
                 # start
-                peak_freq_ang = 0 # !!!!
-                phi_0_ang  = 0 # !!!!!
+                peak_freq_ang_idx = np.argmin( ( np.abs(np.asarray(peak_freqs)) - self.frequencies[freq_idx])**2 )
 
-                U_restored += np.abs(Vavg) * np.cos(peak_freq_ang * self.rot_xx[phi_idx_ang] + phi_0_ang)
+                peak_freq_ang = peak_freqs[peak_freq_ang_idx]
+                print(self.angles[max_idx_ang], peak_freq_ang)
+
+                phi_0_ang  = phi_0s[peak_freq_ang_idx]
+
+                U_restored += np.abs(Vavg) * np.cos(2*np.pi* peak_freq_ang * self.rot_xx[max_idx_ang] + phi_0_ang)
 
         return U_restored
 
@@ -241,17 +253,17 @@ if __name__ == '__main__':
 
     params = {
         "decode": {
-            "use_angle" : "max", # max, avg, full
+            "use_angle" : "avg", # max, avg, full
         }
     }
     centers = [0, 0]
     centers = [0, 0]
     # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
-    angles = np.linspace(0, np.pi, 4, endpoint=False)
+    angles = np.linspace(0, np.pi, 8, endpoint=False)
 
     # print(angles)
-    Len_y = 100
-    Len_x = 100
+    Len_y = 200
+    Len_x = 200
 
     nsigmas = 8
     sigminimum = 0.05
@@ -260,31 +272,34 @@ if __name__ == '__main__':
     xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
 
     image = np.zeros_like(xx)
+    frequencies = np.asarray([6.4, ]) # np.geomspace(1.5, 25, num=5)
     for idx in range(1):
-        f = 6.4  # np.random.rand() * 20
-        # an = np.random.rand() * 2*np.pi - np.pi
-        an = 1.57 # np.pi*0.5 # np.pi  # np.random.choice(angles)
+        f = frequencies[0] # np.random.rand() * 20
+        print(f)
+        an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
+        # an = np.pi*0.5 # np.pi  # np.random.choice(angles)
 
         xx_ = xx * np.cos(an) - yy * np.sin(an)
         image += np.cos(2 * np.pi * xx_ * f)
-
+    print(an)
     #image = image - np.mean(image) # !!!!!!
-    hc = HyperColomn(centers, xx, yy, angles, sigmas, params=params)
+
+    hc = HyperColomn(centers, xx, yy, angles, sigmas, frequencies=frequencies, params=params)
 
     Encoded = hc.encode(image)
     image_restored = hc.decode(Encoded)
 
-    fig, axes = plt.subplots(nrows=len(hc.angles), ncols=len(hc.frequencies))
-    for an_idx, (hats, an) in enumerate(zip(hc.mexican_hats, hc.angles)):
-        for freq_idx, (hat, fr) in enumerate(zip(hats, hc.frequencies)):
-
-            pr = image * hat
-            axes[an_idx, freq_idx].pcolormesh(hc.x, hc.y, pr, cmap="rainbow", shading="auto")
-
-            resp = np.sum(pr)
-            axes[an_idx, freq_idx].axis('off')
-
-            axes[an_idx, freq_idx].set_title( str(np.around(resp, 1)) )
+    # fig, axes = plt.subplots(nrows=len(hc.angles), ncols=len(hc.frequencies)+1)
+    # for an_idx, (hats, an) in enumerate(zip(hc.mexican_hats, hc.angles)):
+    #     for freq_idx, (hat, fr) in enumerate(zip(hats, hc.frequencies)):
+    #
+    #         pr = image * hat
+    #         axes[an_idx, freq_idx].pcolormesh(hc.x, hc.y, pr, cmap="rainbow", shading="auto")
+    #
+    #         resp = np.sum(pr)
+    #         axes[an_idx, freq_idx].axis('off')
+    #
+    #         axes[an_idx, freq_idx].set_title( str(np.around(resp, 1)) )
 
     # for h_apriximated in hc.hilbert_aproxed:
     #     plt.figure()
