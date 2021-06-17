@@ -84,15 +84,18 @@ class HyperColomn:
     def get_rickers(self, sigma, xx, yy):
         #ricker = 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
         sigma_x = sigma
-        sigma_y = 0.5 * sigma_x
+        sigma_y = 1.5 * sigma_x # 0.5 *
         ricker = (-1 + xx**2 / sigma_x**2) * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
 
         ricker = -ricker / np.sqrt(np.sum(ricker**2))
         return ricker
 
     def get_gaussian_derivative(self, sigma, xx, yy):
-        gaussian = np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / (4 * np.pi * sigma**2)
-        gaussian_dx = gaussian * -0.25 * xx / (sigma**2)
+        # gaussian = np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / (4 * np.pi * sigma**2)
+        # gaussian_dx = gaussian * -0.25 * xx / (sigma**2)
+        sigma_x = sigma
+        sigma_y = 1.5 * sigma_x
+        gaussian_dx = -xx * np.exp(-yy ** 2 / (2 * sigma_y ** 2) - xx ** 2 / (2 * sigma_x ** 2)) / sigma_x ** 2
         return gaussian_dx
 
     def sum_gaussian_derivaries(self, w, xx, yy, sigmas):
@@ -234,7 +237,7 @@ class HyperColomn:
                 max_idx_ang = np.argmax( np.exp(np.cos(angle_avg - self.angles) ) )
 
                 # start
-                peak_freq_ang_idx = np.argmin( ( np.abs(np.asarray(peak_freqs)) - self.frequencies[freq_idx])**2 )
+                peak_freq_ang_idx = max_idx_ang #np.argmin( ( np.abs(np.asarray(peak_freqs)) - self.frequencies[freq_idx])**2 )
 
                 peak_freq_ang = peak_freqs[peak_freq_ang_idx]
                 print(self.angles[max_idx_ang], peak_freq_ang)
@@ -282,7 +285,7 @@ if __name__ == '__main__':
         xx_ = xx * np.cos(an) - yy * np.sin(an)
         image += np.cos(2 * np.pi * xx_ * f)
     print(an)
-    #image = image - np.mean(image) # !!!!!!
+    image = image - np.mean(image) # !!!!!!
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas, frequencies=frequencies, params=params)
 

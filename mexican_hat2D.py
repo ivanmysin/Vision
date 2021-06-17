@@ -15,13 +15,15 @@ sigma_y = Symbol("sigma_y") #
 gaussian = exp(- ( x**2/(2*sigma_x**2) + y**2/(2*sigma_y**2)) )  #/ (8 * sigma**2)) / (4 * np.pi * sigma**2)
     # exp(-(x**2 + 4 * y**2) / (8 * sigma**2)) / (4 * np.pi * sigma**2)
 
+dgaussian = diff(gaussian, x, 1)
 # np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / (4 * np.pi * sigma**2)
 # ricker2D = xx / (64*np.pi*sigma**8) * np.exp( (-xx**2 - 4*yy**2) / (8 * sigma**2))
 
 ricker2D_expr = diff(gaussian, x, 2)
 ricker2D_func = lambdify( [x, y, sigma_x, sigma_y], ricker2D_expr)
 
-print(ricker2D_expr)
+#print(ricker2D_expr)
+print(dgaussian)
 
 sigma = 0.05
 ricker2D = ricker2D_func(xx, yy, sigma, 0.5*sigma)
