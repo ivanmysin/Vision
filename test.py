@@ -1,38 +1,68 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from sympy import diff, lambdify, exp, Symbol
+from scipy.signal import convolve2d
 
-Len_y = 200
-Len_x = 200
+
+## find receptive field form
+x = Symbol("x")
+y = Symbol("y")
+sigma_x = Symbol("sigma_x")
+sigma_y = Symbol("sigma_y")
+gaussian = exp(- ( x**2/(2*sigma_x**2) + y**2/(2*sigma_y**2)) ) # гауссиана
+
+kernel_expr = diff(gaussian, x, 0) # дифференцируем по х n раз
+
+# компилируем выражение в выполняемую функцию
+kernel_func = lambdify( [x, y, sigma_x, sigma_y], kernel_expr)
+
+####################################################################
+### Создаем коррдинатную сетку
+Len_y = 200 # number points by Y axis in image
+Len_x = 200 # number points by X axis in image
 
 xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
-ws = 6.4
-sigma = 1 / (np.sqrt(2) * np.pi * ws)
+# xx, yy - двумерные массивы задающие сетку от -0,5 до 0,5 по Len_x и Len_y точек соответсвенно
+####################################################################
+### Генерируем сигнал
+signal_freq = 5.0 # частота синусойды в сигнале
+image = np.cos(2 * np.pi * signal_freq * yy)
 
-an = np.pi / 4
-xx_ = xx * np.cos(an) - yy * np.sin(an)
-yy_ = xx * np.sin(an) + yy * np.cos(an)
-image = np.cos(2 * np.pi * xx * ws)
+### рисуем сигнал
+_, axes = plt.subplots()
+axes.pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
+axes.set_title("Исходный сигнал")
+####################################################################
+### Вычисляем рецептивные поля под разными углами
+angles = np.linspace(0, np.pi, 8, endpoint=False) # 8 равномерно распределенных напрвлений
 
-sigma_x = sigma
+# вычисляем сигмы по Х и по У
+# В данном случае сигмы берутся так чтобы частота сигнала совпадала с максимальной частотой в спектре мексиканской шляпы
+sigma_x = 1 / (np.sqrt(2) * np.pi * signal_freq)
 sigma_y = 0.5 * sigma_x
-ricker1 = (-1 + xx_**2/sigma_x**2) * np.exp(-yy_**2/(2*sigma_y**2) - xx_**2/(2*sigma_x**2))/sigma_x**2
-ricker1 = ricker1 / np.sqrt(np.sum(ricker1**2))
-# 0.005 * (4 - xx_**2 / sigma**2) * np.exp(-(xx_**2 + 4 * yy_**2) / (8 * sigma**2)) / sigma**4
-ricker2 = (-1 + xx**2/sigma_x**2) * np.exp(-yy**2/(2*sigma_y**2) - xx**2/(2*sigma_x**2))/sigma_x**2
-# 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
-ricker2 = ricker2 / np.sqrt(np.sum(ricker2**2))
 
-fig, axes = plt.subplots(ncols=3)
-axes[0].pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
-axes[1].pcolormesh(xx[0, :], yy[:, 0], ricker1, cmap="rainbow", shading="auto")
-axes[2].pcolormesh(xx[0, :], yy[:, 0], ricker2, cmap="rainbow", shading="auto")
+fig, axes = plt.subplots(ncols=8, nrows=2, figsize=(24, 6))
 
-fig, axes = plt.subplots(ncols=3)
-axes[0].plot(xx[0, :], image[100, :] )
-axes[0].plot(xx[0, :], -ricker2[100, :]/np.max(-ricker2[100, :]) )
+# пробегаем по всем напрвлениям
+for an_idx, an in enumerate(angles):
+    # Поварачиваем координаты на угол
+    xx_rot = xx * np.cos(an) - yy * np.sin(an)
+    yy_rot = xx * np.sin(an) + yy * np.cos(an)
 
-axes[1].plot(xx[0, :], image[100, :] )
-axes[1].plot(xx[0, :], -ricker1[100, :]/np.max(-ricker1[100, :]))
+    kernel = kernel_func(xx_rot, yy_rot, sigma_x, sigma_y) # Вычисляем ядро
+    kernel = kernel / np.sqrt(np.sum(kernel**2))           # Нормируем ядро
 
-print( np.sum(ricker1*image), np.sum(ricker2*image) )
+    response = image * kernel # Вычисляем ответ при совпадении центра рецептивного поля нейрона и гиперколонки
+    # Или вычисляем всю свертку
+    #response = convolve2d(image, kernel, mode='same')
+    axes[0, an_idx].pcolormesh(xx[0, :], yy[:, 0], kernel, cmap="rainbow", shading="auto")
+    axes[1, an_idx].pcolormesh(xx[0, :], yy[:, 0], response, cmap="rainbow", shading="auto")
+
+    print( np.rad2deg(an), np.sum(response) )
+
+
+axes[0, angles.size//2].set_title("Ядра")
+axes[1, angles.size//2].set_title("Ответы")
+
+
 plt.show()

@@ -51,9 +51,10 @@ class HyperColomn:
         w0 = np.ones(self.sigmas.size, dtype=np.float)
         opt_res = minimize(self._hilbert_dgs_diff, x0=w0, args=(self.xx, self.yy, self.sigmas))
         self.dg_weiths = opt_res.x
-        # np.save(self.file_saving_ws, self.dg_weiths)
+        #### np.save(self.file_saving_ws, self.dg_weiths)
         self.H_aproxed = self.sum_gaussian_derivaries(self.dg_weiths, self.xx, self.yy, self.sigmas)  #
         self.H_aproxed_normed = self.H_aproxed / np.sqrt(np.sum(self.H_aproxed ** 2))
+        #self.H_aproxed_normed =
 
     def rotate_xy(self):
         for phi in self.angles:
@@ -70,7 +71,6 @@ class HyperColomn:
             yy = self.rot_yy[phi_idx]
             H_aprox = self.sum_gaussian_derivaries(self.dg_weiths, xx, yy, self.sigmas)
             H_aprox = H_aprox / np.sqrt(np.sum(H_aprox**2))
-
             self.hilbert_aproxed.append(H_aprox)
 
 
@@ -94,7 +94,7 @@ class HyperColomn:
         # gaussian = np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / (4 * np.pi * sigma**2)
         # gaussian_dx = gaussian * -0.25 * xx / (sigma**2)
         sigma_x = sigma
-        sigma_y = 1.5 * sigma_x
+        sigma_y = 0.1 * sigma_x
         gaussian_dx = -xx * np.exp(-yy ** 2 / (2 * sigma_y ** 2) - xx ** 2 / (2 * sigma_x ** 2)) / sigma_x ** 2
         return gaussian_dx
 
