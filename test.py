@@ -29,21 +29,23 @@ signal_freq = 5.0 # частота синусойды в сигнале
 image = np.cos(2 * np.pi * signal_freq * yy)
 
 ### рисуем сигнал
-_, axes = plt.subplots()
-axes.pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
-axes.set_title("Исходный сигнал")
+_, axes_sig = plt.subplots(ncols=2, figsize=(10, 5))
+axes_sig[0].pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
+axes_sig[0].set_title("Исходный сигнал")
 ####################################################################
 ### Вычисляем рецептивные поля под разными углами
-angles = np.linspace(0, np.pi, 8, endpoint=False) # 8 равномерно распределенных напрвлений
+angles = np.linspace(0, np.pi, 8, endpoint=False) # 8 равномерно распределенных направлений
 
 # вычисляем сигмы по Х и по У
 # В данном случае сигмы берутся так чтобы частота сигнала совпадала с максимальной частотой в спектре мексиканской шляпы
-sigma_x = 1 / (np.sqrt(2) * np.pi * signal_freq)
+sigma_x = 0.05 # 1 / (np.sqrt(2) * np.pi * signal_freq)
 sigma_y = 0.5 * sigma_x
 
 fig, axes = plt.subplots(ncols=8, nrows=2, figsize=(24, 6))
 
-# пробегаем по всем напрвлениям
+responses = np.zeros_like(angles) # ответы по углам
+
+# пробегаем по всем направлениям
 for an_idx, an in enumerate(angles):
     # Поварачиваем координаты на угол
     xx_rot = xx * np.cos(an) - yy * np.sin(an)
@@ -53,6 +55,7 @@ for an_idx, an in enumerate(angles):
     kernel = kernel / np.sqrt(np.sum(kernel**2))           # Нормируем ядро
 
     response = image * kernel # Вычисляем ответ при совпадении центра рецептивного поля нейрона и гиперколонки
+    responses[an_idx] = np.sum(response)
     # Или вычисляем всю свертку
     #response = convolve2d(image, kernel, mode='same')
     axes[0, an_idx].pcolormesh(xx[0, :], yy[:, 0], kernel, cmap="rainbow", shading="auto")
@@ -63,6 +66,13 @@ for an_idx, an in enumerate(angles):
 
 axes[0, angles.size//2].set_title("Ядра")
 axes[1, angles.size//2].set_title("Ответы")
+
+# Рисуем график ответов в зависимости от угла
+axes_sig[1].plot(np.rad2deg(angles), responses)
+axes_sig[1].set_title("Распределение ответов по напрвлениям")
+axes_sig[1].set_ylabel("Ответ")
+axes_sig[1].set_xlabel("Направление, градусы")
+
 
 
 plt.show()
