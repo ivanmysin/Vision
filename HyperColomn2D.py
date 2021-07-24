@@ -82,9 +82,8 @@ class HyperColomn:
 
 
     def get_rickers(self, sigma, xx, yy):
-        #ricker = 0.005 * (4 - xx**2 / sigma**2) * np.exp(-(xx**2 + 4 * yy**2) / (8 * sigma**2)) / sigma**4
         sigma_x = sigma
-        sigma_y = 1.5 * sigma_x # 0.5 *
+        sigma_y = 0.5 * sigma_x
         ricker = (-1 + xx**2 / sigma_x**2) * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
 
         ricker = -ricker / np.sqrt(np.sum(ricker**2))
@@ -95,7 +94,7 @@ class HyperColomn:
         # gaussian_dx = gaussian * -0.25 * xx / (sigma**2)
         sigma_x = sigma
         sigma_y = 0.1 * sigma_x
-        gaussian_dx = -xx * np.exp(-yy ** 2 / (2 * sigma_y ** 2) - xx ** 2 / (2 * sigma_x ** 2)) / sigma_x ** 2
+        gaussian_dx = -xx * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
         return gaussian_dx
 
     def sum_gaussian_derivaries(self, w, xx, yy, sigmas):
@@ -111,6 +110,20 @@ class HyperColomn:
         E = np.sum( (H - sum_dg[self.x.size//2, :])**2 )
 
         return E
+
+    def find_dominant_direction(self, image):
+
+        responses = np.zeros_like(self.angles)  # ответы по углам
+        for an_idx, kernel in enumerate(self.mexican_hats):
+            responses[an_idx] = np.sum( kernel[-1] * image)
+
+        direction_max_resp = self.angles[np.argmax(np.abs(responses))]  # возвращаем направление с максимальным ответом
+        vectors_responses = responses * np.exp(1j * self.angles)
+        near_angles_idxs = np.argsort(np.cos(direction_max_resp - self.angles))
+
+        direction_max_resp = np.angle(np.sum(vectors_responses[near_angles_idxs[:self.angles.size // 2]]))  # возвращаем направление после векторного усреднения ответов
+
+        return direction_max_resp
 
     def encode(self, U):
         
@@ -262,7 +275,7 @@ if __name__ == '__main__':
     centers = [0, 0]
     centers = [0, 0]
     # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
-    angles = np.linspace(0, np.pi, 8, endpoint=False)
+    angles = np.linspace(-np.pi, np.pi, 16, endpoint=False)
 
     # print(angles)
     Len_y = 200
@@ -275,24 +288,27 @@ if __name__ == '__main__':
     xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
 
     image = np.zeros_like(xx)
-    frequencies = np.asarray([6.4, ]) # np.geomspace(1.5, 25, num=5)
+    frequencies = np.geomspace(1.5, 25, num=5) # np.asarray([6.4, ]) #
     for idx in range(1):
         f = frequencies[0] # np.random.rand() * 20
-        print(f)
+        # print(f)
         an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
         # an = np.pi*0.5 # np.pi  # np.random.choice(angles)
 
         xx_ = xx * np.cos(an) - yy * np.sin(an)
         image += np.cos(2 * np.pi * xx_ * f)
-    print(an)
+
     image = image - np.mean(image) # !!!!!!
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas, frequencies=frequencies, params=params)
 
-    Encoded = hc.encode(image)
-    image_restored = hc.decode(Encoded)
+    #main_direction = hc.find_dominant_direction(image)
 
-    # fig, axes = plt.subplots(nrows=len(hc.angles), ncols=len(hc.frequencies)+1)
+    # print(an, main_direction)
+    # Encoded = hc.encode(image)
+    # image_restored = hc.decode(Encoded)
+
+    # fig, axes = plt.subplots(nrows=len(hc.angles), ncols=len(hc.frequencies))
     # for an_idx, (hats, an) in enumerate(zip(hc.mexican_hats, hc.angles)):
     #     for freq_idx, (hat, fr) in enumerate(zip(hats, hc.frequencies)):
     #
@@ -309,9 +325,9 @@ if __name__ == '__main__':
     #     plt.pcolormesh(hc.x, hc.y, h_apriximated, cmap="rainbow", shading="auto")
     #     plt.show()
 
-    plt.figure()
-    plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
-    plt.figure()
-    plt.pcolormesh(hc.x, hc.y, image_restored, cmap="rainbow", shading="auto")
-
+    # plt.figure()
+    # plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
+    # plt.figure()
+    # plt.pcolormesh(hc.x, hc.y, image_restored, cmap="rainbow", shading="auto")
+    #
     plt.show()
