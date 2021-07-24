@@ -39,7 +39,7 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
 
     # вычисляем сигмы по Х и по У
     # В данном случае сигмы берутся так чтобы частота сигнала совпадала с максимальной частотой в спектре мексиканской шляпы
-    sigma_x = 0.05 # 1 / (np.sqrt(2) * np.pi * signal_freq)
+    sigma_x = 0.005 # 0.05 # 1 / (np.sqrt(2) * np.pi * signal_freq)
     sigma_y = 0.5 * sigma_x
 
     fig, axes = plt.subplots(ncols=8, nrows=2, figsize=(24, 6))
@@ -88,7 +88,7 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     return direction_max_resp
 
 if __name__ == "__main__":
-    signal_freqs = np.asarray([5.0, ]) # вектор частот  #np.linspace(0.1, 80, 40)
+    signal_freqs = np.linspace(0.1, 80, 40) # вектор частот  # np.asarray([1.0, ])
     phi_0s = np.linspace(-np.pi, np.pi, 20, endpoint=False)  # вектор начальных фаз
 
     max_direction_response = np.zeros( [signal_freqs.size, phi_0s.size] , dtype=np.float )
@@ -96,14 +96,25 @@ if __name__ == "__main__":
         for phi_idx, phi_0 in enumerate(phi_0s):
             max_direction_response[freq_idx, phi_idx] = get_direction(signal_freq=signal_freq, phi_0=phi_0, show_figures=False)
 
-    max_direction_response = np.rad2deg(max_direction_response)
-    fig, axes = plt.subplots(figsize=(10, 5))
-    axes.plot(phi_0s, max_direction_response.ravel())
-    # gr = axes.pcolormesh(phi_0s, signal_freqs, max_direction_response, cmap="rainbow", shading="auto")
-    # axes.set_title("Максимальное направление")
-    # axes.set_xlabel("Начальная фаза")
-    # axes.set_ylabel("Частота сигнала")
-    # plt.colorbar(gr)
+    max_direction_response[max_direction_response < 0] += np.pi
+    max_direction_response_deg = np.rad2deg(max_direction_response)
+    fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
+    # axes.plot(phi_0s, max_direction_response.ravel())
+    gr = axes[0].pcolormesh(phi_0s, signal_freqs, max_direction_response_deg, cmap="rainbow", shading="auto")
+    axes[0].set_title("Максимальное направление")
+    axes[0].set_xlabel("Начальная фаза")
+    axes[0].set_ylabel("Частота сигнала")
+    plt.colorbar(gr, ax=axes[0])
+
+
+
+    dev = np.abs(np.cos(max_direction_response - 0.5*np.pi)) #,  0.5*(np.cos( max_direction_response + 0.5*np.pi) + 1))
+    gr2 = axes[1].pcolormesh(phi_0s, signal_freqs, dev, cmap="rainbow", shading="auto")
+    axes[1].set_title("Максимальное направление")
+    axes[1].set_xlabel("Начальная фаза")
+    axes[1].set_ylabel("Частота сигнала")
+    plt.colorbar(gr2, ax=axes[1])
+
 
     fig.savefig("./results/direction_selectivity_1D_hat.png")
     plt.show()
