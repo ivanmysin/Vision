@@ -146,7 +146,7 @@ class HyperColomn:
             phi_idx = angle_idx
 
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
-            u_imag = u_imag / np.max(u_imag) # !!!!!!!!!!
+            #  u_imag = u_imag / np.max(u_imag) # !!!!!!!!!!
 
             u = U + 1j * u_imag
             # u = hilbert2(U)
@@ -161,9 +161,9 @@ class HyperColomn:
 
             dx_dist = 2 * np.sqrt( dx**2 + dy**2 )
 
-            plt.figure()
-            plt.plot(self.y, u[:, 100].real, color="green")
-            plt.plot(self.y, u[:, 100].imag, color="blue")
+            # plt.figure()
+            # plt.plot(self.y, u[:, 100].real, color="green")
+            # plt.plot(self.y, u[:, 100].imag, color="blue")
             # plt.pcolormesh(self.x, self.y, u_imag, cmap="gray", shading="auto")
             # plt.scatter(self.xx.ravel()[cent_x_idx_b], self.yy.ravel()[cent_x_idx_b], color="red")
             # plt.scatter(self.xx.ravel()[cent_x_idx_f], self.yy.ravel()[cent_x_idx_f], color="blue")
@@ -171,13 +171,14 @@ class HyperColomn:
             # plt.hlines(0, -0.1, 0.1)
             # plt.figure()
             # plt.pcolormesh(self.x, self.y, U, cmap="gray", shading="auto")
-            plt.show()
+            # plt.show()
 
             for freq_idx, freq in enumerate(self.frequencies):
 
                 Ucoded = convolve2d(u, self.mexican_hats[phi_idx][freq_idx], mode="same")
 
-
+                Ucoded.real = Ucoded.real / np.sqrt( np.sum(Ucoded.real**2) )
+                Ucoded.imag = Ucoded.imag / np.sqrt( np.sum(Ucoded.imag**2) )
                 # plt.figure()
                 # plt.pcolormesh(self.x, self.y, Ucoded.real, cmap="gray", shading="auto")
                 # # plt.scatter(self.xx.ravel()[cent_x_idx_b], self.yy.ravel()[cent_x_idx_b], color="red")
