@@ -222,12 +222,15 @@ class HyperColomn:
 
                 # print(Ucoded.ravel()[cent_x_idx_b].real, Ucoded.ravel()[cent_x_idx_b].imag)
 
-                # phase_0 = np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx])
+                phase_0 = np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx])
                 # phase_b = np.angle(Ucoded.ravel()[cent_x_idx_b])
                 # phase_f = np.angle(Ucoded.ravel()[cent_x_idx_f])
+                # phases_train = np.asarray([phase_b, phase_0, phase_f])
 
-                phases_train = np.angle(Ucoded).ravel() # np.asarray([phase_b, phase_0, phase_f])
-                x_train = self.rot_xx[angle_idx].ravel()
+                selected_vals = (np.abs(self.rot_xx[angle_idx]) < 5*dx_dist)&(np.abs( self.rot_yy[angle_idx]) < 5*dx_dist)
+
+                phases_train = np.angle(Ucoded[selected_vals]).ravel()
+                x_train = self.rot_xx[angle_idx][selected_vals].ravel()
                 peak_freq = self.find_peak_freq(phases_train, x_train, freq)
 
 
