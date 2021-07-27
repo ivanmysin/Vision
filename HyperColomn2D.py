@@ -48,13 +48,16 @@ class HyperColomn:
         self.rotate_xy()
         self.compute_kernels()
 
+        self.normalization_factor_H = 1
+
     def aproximate_hilbert_kernel(self):
         w0 = np.ones(self.sigmas.size, dtype=np.float)
         opt_res = minimize(self._hilbert_dgs_diff, x0=w0, args=(self.xx, self.yy, self.sigmas))
         self.dg_weiths = opt_res.x
         #### np.save(self.file_saving_ws, self.dg_weiths)
         self.H_aproxed = self.sum_gaussian_derivaries(self.dg_weiths, self.xx, self.yy, self.sigmas)  #
-        self.H_aproxed_normed = self.H_aproxed / np.sqrt(np.sum(self.H_aproxed ** 2))
+        self.normalization_factor_H = np.sqrt(np.sum(self.H_aproxed[self.x.size//2, :]**2))
+        self.H_aproxed_normed = self.H_aproxed / self.normalization_factor_H
 
 
     def rotate_xy(self):
@@ -66,12 +69,15 @@ class HyperColomn:
             self.rot_yy.append(yy)
 
     def compute_kernels(self):
+
         for phi_idx in range(len(self.angles)):
 
             xx = self.rot_xx[phi_idx]
             yy = self.rot_yy[phi_idx]
             H_aprox = self.sum_gaussian_derivaries(self.dg_weiths, xx, yy, self.sigmas)
-            H_aprox = H_aprox / np.sqrt(np.sum(H_aprox**2))
+            H_aprox = H_aprox / np.sqrt( np.sum(  H_aprox**2 ) )
+
+                      #self.normalization_factor_H
 
             self.hilbert_aproxed.append(H_aprox)
 
@@ -127,6 +133,28 @@ class HyperColomn:
 
         return direction_max_resp
 
+    def _get_phi_0(self, slope, phi_train, x_train):
+        s = np.sum(np.cos(phi_train - 2 * np.pi * slope * x_train))
+        s += 1j * np.sum( np.sin(phi_train - 2 * np.pi * slope * x_train))
+        phi_0 = np.angle(s)
+        return phi_0
+
+    def _get_Dist(self, slope, phi_train, x_train):
+        phi_0 = self._get_phi_0(slope, phi_train, x_train)
+        D = 2 * (1 - np.mean(np.cos(phi_train - 2 * np.pi * slope * x_train - phi_0)))
+
+        return D
+
+
+    def find_peak_freq(self, phases, dx, x0):
+
+        phis = phases
+        x = dx # np.array( [-dx, 0, dx])
+        res = minimize(self._get_Dist, x0=x0, args=(phis, x), method='Powell')
+        slope = res.x
+        return float(slope)
+
+
     def encode(self, U):
 
         direction = self.find_dominant_direction(U)
@@ -146,9 +174,11 @@ class HyperColomn:
             phi_idx = angle_idx
 
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
-            #  u_imag = u_imag / np.max(u_imag) # !!!!!!!!!!
 
             u = U + 1j * u_imag
+
+            u.real = u.real / np.sqrt( np.mean(u.real**2) )
+            u.imag = u.imag / np.sqrt( np.mean(u.imag**2) )
             # u = hilbert2(U)
 
             dx = self.dx*np.cos(self.angles[phi_idx])
@@ -159,26 +189,27 @@ class HyperColomn:
             cent_x_idx_b = np.argmin( (self.xx - dx)**2 + (self.yy - dy)**2 )
             cent_x_idx_f = np.argmin( (self.xx + dx)**2 + (self.yy + dy)**2 )
 
-            dx_dist = 2 * np.sqrt( dx**2 + dy**2 )
+            dx_dist = np.sqrt( dx**2 + dy**2 )
 
             # plt.figure()
             # plt.plot(self.y, u[:, 100].real, color="green")
             # plt.plot(self.y, u[:, 100].imag, color="blue")
-            # plt.pcolormesh(self.x, self.y, u_imag, cmap="gray", shading="auto")
+            ## plt.pcolormesh(self.x, self.y, u_imag, cmap="gray", shading="auto")
             # plt.scatter(self.xx.ravel()[cent_x_idx_b], self.yy.ravel()[cent_x_idx_b], color="red")
             # plt.scatter(self.xx.ravel()[cent_x_idx_f], self.yy.ravel()[cent_x_idx_f], color="blue")
-            # plt.vlines(0, -0.1, 0.1)
-            # plt.hlines(0, -0.1, 0.1)
+            # plt.vlines(0, -0.1, 0.1, color="red")
+            # plt.hlines(0, -0.1, 0.1, color="red")
             # plt.figure()
             # plt.pcolormesh(self.x, self.y, U, cmap="gray", shading="auto")
-            # plt.show()
+            plt.show()
 
             for freq_idx, freq in enumerate(self.frequencies):
 
                 Ucoded = convolve2d(u, self.mexican_hats[phi_idx][freq_idx], mode="same")
 
-                Ucoded.real = Ucoded.real / np.sqrt( np.sum(Ucoded.real**2) )
-                Ucoded.imag = Ucoded.imag / np.sqrt( np.sum(Ucoded.imag**2) )
+                # Ucoded.real = Ucoded.real / np.sqrt( np.sum(Ucoded.real**2) )
+                # Ucoded.imag = Ucoded.imag / np.sqrt( np.sum(Ucoded.imag**2) )
+
                 # plt.figure()
                 # plt.pcolormesh(self.x, self.y, Ucoded.real, cmap="gray", shading="auto")
                 # # plt.scatter(self.xx.ravel()[cent_x_idx_b], self.yy.ravel()[cent_x_idx_b], color="red")
@@ -191,22 +222,35 @@ class HyperColomn:
 
                 # print(Ucoded.ravel()[cent_x_idx_b].real, Ucoded.ravel()[cent_x_idx_b].imag)
 
+                # phase_0 = np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx])
+                # phase_b = np.angle(Ucoded.ravel()[cent_x_idx_b])
+                # phase_f = np.angle(Ucoded.ravel()[cent_x_idx_f])
 
-                phase2 = np.angle(Ucoded.ravel()[cent_x_idx_b])
-                phase1 = np.angle(Ucoded.ravel()[cent_x_idx_f])
+                phases_train = np.angle(Ucoded).ravel() # np.asarray([phase_b, phase_0, phase_f])
+                x_train = self.rot_xx[angle_idx].ravel()
+                peak_freq = self.find_peak_freq(phases_train, x_train, freq)
 
-                phase_diff = phase1 - phase2
-                # if phase_diff < 0: phase_diff += 2 * np.pi
 
-                # if phase_diff < -np.pi: phase_diff += 2*np.pi
-                # if phase_diff >  np.pi: phase_diff -= 2*np.pi
-
-                peak_freq = phase_diff / dx_dist / (2*np.pi) # peak_freq
+                # phase_diff_1 = phase_f - phase_0
+                #
+                # print(phase_diff_1)
+                #
+                # phase_diff_1 = 0
+                # #if phase_diff_1 < 0: phase_diff_1 += 2 * np.pi
+                #
+                # phase_diff_2 = phase_0 - phase_b
+                # #if phase_diff_2 < 0: phase_diff_2 += 2 * np.pi
+                #
+                # phase_diff = (phase_diff_1 + phase_diff_2) / 2
+                #
+                #
+                #
+                # peak_freq = phase_diff / dx_dist / (2*np.pi) # peak_freq
 
 
                 encoded_dict = {
                     "peak_freq" : peak_freq,
-                    "phi_0" : np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx]),
+                    "phi_0" : phase_0,
                     "abs" : np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]),
                     "dominant_direction" : self.angles[angle_idx], # direction,
                     "direction_idx" : angle_idx,
@@ -259,10 +303,10 @@ if __name__ == '__main__':
     image = np.zeros_like(xx)
     frequencies = np.asarray([5, 8.0, 16.0])  # np.geomspace(1.5, 25, num=5) #
     for idx in range(1):
-        f = 2.7 # frequencies[2] # np.random.rand() * 20
+        f = np.random.rand() * 20 # 10 # frequencies[2] #
         # print(f)
-        # an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
-        an = np.pi * 0.5 # np.pi  # np.random.choice(angles)
+        an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
+        # an = np.pi * 0.5 # np.pi  # np.random.choice(angles)
 
         xx_ = xx * np.cos(an) - yy * np.sin(an)
         image += np.cos(2 * np.pi * xx_ * f)
@@ -272,7 +316,7 @@ if __name__ == '__main__':
 
     #main_direction = hc.find_dominant_direction(image)
 
-    print(an)
+    print(an, f)
     Encoded = hc.encode(image)
     image_restored = hc.decode(Encoded)
 
