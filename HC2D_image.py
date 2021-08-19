@@ -54,7 +54,9 @@ for i in range(NGHs):
 
 image_restored = np.sum(image_restored_by_HCs * receptive_fields, axis=2)
 
-
-plt.imshow(image_restored, cmap="gray")
-plt.scatter(hc_centers_x, hc_centers_y)
+fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
+axes[0].imshow(image, cmap="gray")
+axes[1].imshow(image_restored, cmap="gray")
+axes[1].scatter(hc_centers_x, hc_centers_y, color="red")
+fig.savefig("./results/hypercolumns2D.png")
 plt.show()
