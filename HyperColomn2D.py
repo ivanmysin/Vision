@@ -143,7 +143,8 @@ class HyperColomn:
 
 
     def find_peak_freq(self, phases_train, x_train, freq):
-        res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
+        # res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
+        res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[0.8*freq, 1.5*freq], method='Bounded')
         slope = float(res.x)
         return slope
 
@@ -158,6 +159,7 @@ class HyperColomn:
         directions = self.find_dominant_direction(U)
 
         for direc_idx, direction in enumerate(directions):
+            if direction < 0: direction += np.pi
             phi_idx = np.argmax( np.cos(direction - self.angles) )
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
 
@@ -235,7 +237,7 @@ if __name__ == '__main__':
     image = np.zeros_like(xx)
     frequencies = np.asarray([1.5, 8.0, 16.0, 80])  # np.geomspace(1.5, 25, num=5) #
     for idx in range(1):
-        f = np.random.rand() * 20 # 10 # frequencies[2] #
+        f = 80 # np.random.rand() * 20 # 10 # frequencies[2] #
         # print(f)
         an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
         # an = np.pi * 0.5 # np.pi  # np.random.choice(angles)

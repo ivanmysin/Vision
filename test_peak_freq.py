@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.signal import hilbert
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, minimize_scalar
 
 def get_phi_0(slope, phi_train, x_train):
     s = np.sum( np.cos(phi_train - 2*np.pi*slope*x_train) ) + 1j * np.sum( np.sin(phi_train - 2*np.pi*slope*x_train) )
@@ -17,7 +17,7 @@ def get_Dist(slope, phi_train, x_train):
 
 
 x, dx = np.linspace(-0.5, 0.5, 200, retstep=True)
-freq = 10
+freq = 72
 sig = np.cos(2*np.pi * x * freq)
 H = 1 / (np.pi * x)
 
@@ -26,9 +26,11 @@ sig = sig + 1j * np.convolve(sig, H, mode='same')
 # sig = hilbert(sig)
 
 
-phis = np.angle(sig)
+phases_train = np.angle(sig)
+x_train = x
+#res = minimize(get_Dist, x0=2, args=(phis, x), method='Powell' )
 
-res = minimize(get_Dist, x0=2, args=(phis, x), method='Powell' )
+res = minimize_scalar(get_Dist, args=(phases_train, x_train), bounds=[0.8*freq, 1.5*freq], method='Bounded')
 
 print (res.x)
 
