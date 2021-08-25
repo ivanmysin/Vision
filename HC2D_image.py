@@ -10,8 +10,8 @@ Len_y, Len_x = image.shape
 
 xx, yy = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
 
-radiuses = np.geomspace(0.1, 0.8, 3)
-angles = np.linspace(-np.pi, np.pi, 2, endpoint=True)
+radiuses = np.geomspace(0.1, 0.8, 30)
+angles = np.linspace(-np.pi, np.pi, 30, endpoint=True)
 
 NGHs = int(radiuses.size*angles.size) # число гиперколонок
 
@@ -56,7 +56,7 @@ image_restored = np.sum(image_restored_by_HCs * receptive_fields, axis=2)
 
 fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
 axes[0].imshow(image, cmap="gray")
-axes[1].imshow(image_restored, cmap="gray")
-axes[1].scatter(hc_centers_x, hc_centers_y, color="red")
+axes[1].pcolor(xx[0, :], yy[:, 0], image_restored, cmap='gray', shading='auto')
+axes[1].scatter(hc_centers_x, hc_centers_y, s=0.5, color="red")
 fig.savefig("./results/hypercolumns2D.png")
 plt.show()
