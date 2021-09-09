@@ -35,13 +35,14 @@ class HyperColomn:
         else:
             self.frequencies = frequencies
 
-        kotelnikov_limit = 0.5 / self.dx
-        self.frequencies = self.frequencies[self.frequencies < kotelnikov_limit]
+        self.kotelnikov_limit = 0.5 / np.sqrt(self.dx**2 + self.dy**2)
+        self.frequencies = self.frequencies[self.frequencies < self.kotelnikov_limit]
 
 
 
         self.mexican_hats = []
         self.hilbert_aproxed = []
+        self.gaussian = np.ones_like(self.xx)
 
 
         self.rotate_xy()
@@ -68,12 +69,13 @@ class HyperColomn:
             self.rot_yy.append(yy)
 
     def compute_kernels(self):
-
         for phi_idx in range(len(self.angles)):
 
             xx = self.rot_xx[phi_idx]
             yy = self.rot_yy[phi_idx]
             H_aprox = self.sum_gaussian_derivaries(self.dg_weiths, xx, yy, self.sigmas)
+
+            # print( np.sum(  H_aprox**2 ) )
             H_aprox = H_aprox / np.sqrt( np.sum(  H_aprox**2 ) )
             self.hilbert_aproxed.append(H_aprox)
 
@@ -83,18 +85,22 @@ class HyperColomn:
                 hat = self.get_rickers(sigma, xx, yy)
                 self.mexican_hats[phi_idx].append(hat)
 
+        sigma = np.max(self.sigmas)
+        self.gaussian = np.exp(-self.yy**2 / (2 * sigma**2) - self.xx**2 / (2 * sigma**2))
+        self.gaussian /= np.sum(self.gaussian)
 
     def get_rickers(self, sigma, xx, yy):
         sigma_x = sigma
         sigma_y = 0.5 * sigma_x
         ricker = (-1 + xx**2 / sigma_x**2) * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
 
-        ricker = -ricker / np.sqrt(np.sum(ricker**2))
+        ricker = ricker / np.sqrt(np.sum(ricker**2)) # -ricker / np.sqrt(np.sum(ricker**2))
+        # ricker -= np.mean(ricker)
         return ricker
 
     def get_gaussian_derivative(self, sigma, xx, yy):
         sigma_x = sigma
-        sigma_y = 0.1 * sigma_x
+        sigma_y = 0.5 * sigma_x
         gaussian_dx = -xx * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
         return gaussian_dx
 
@@ -107,6 +113,7 @@ class HyperColomn:
 
     def _hilbert_dgs_diff(self, w, xx, yy, sigmas):
         H = 1 / (np.pi * self.x)
+        H = H / np.sqrt( np.sum(H**2) )
         sum_dg = self.sum_gaussian_derivaries(w, xx, yy, sigmas)
         E = np.sum( (H - sum_dg[self.x.size//2, :])**2 )
 
@@ -138,13 +145,16 @@ class HyperColomn:
     def _get_Dist(self, slope, phi_train, x_train):
         phi_0 = self._get_phi_0(slope, phi_train, x_train)
         D = 2 * (1 - np.mean(np.cos(phi_train - 2 * np.pi * slope * x_train - phi_0)))
+        if slope < 0.5:
+            D += 100
 
         return D
 
 
     def find_peak_freq(self, phases_train, x_train, freq):
         # res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
-        res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[0.8*freq, 1.5*freq], method='Bounded')
+        np.savez("./results/saved.npz", phases_train, x_train)
+        res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[0.5, self.kotelnikov_limit], method='brent')
         slope = float(res.x)
         return slope
 
@@ -152,11 +162,12 @@ class HyperColomn:
     def encode(self, U):
 
         Encoded = []
+
         for i in range(len(self.frequencies)):
             Encoded.append({})
 
 
-        directions = self.find_dominant_direction(U)
+        directions = self.find_dominant_direction(U) # [1.57, ] #
 
         for direc_idx, direction in enumerate(directions):
             if direction < 0: direction += np.pi
@@ -164,8 +175,9 @@ class HyperColomn:
             u_imag = convolve2d(U, self.hilbert_aproxed[phi_idx], mode="same")
 
             u = U + 1j * u_imag
-            u.real = u.real / np.sqrt( np.mean(u.real**2) )
-            u.imag = u.imag / np.sqrt( np.mean(u.imag**2) )
+            # u.real = u.real / np.sqrt( np.sum(u.real**2) )
+            # u.imag = u.imag / np.sqrt( np.sum(u.imag**2) )
+            # u.imag = u.imag / np.sqrt( np.sum(u.real**2) )
 
             dx = self.dx*np.cos(self.angles[phi_idx])
             dy = self.dx*np.sin(self.angles[phi_idx])
@@ -175,15 +187,19 @@ class HyperColomn:
             for freq_idx, freq in enumerate(self.frequencies):
 
                 Ucoded = convolve2d(u, self.mexican_hats[phi_idx][freq_idx], mode="same")
+                Ucoded_normal = Ucoded.real/np.sqrt(np.sum(Ucoded.real**2)) + 1j*Ucoded.imag/np.sqrt(np.sum(Ucoded.imag**2))
 
-                phase_0 = np.angle(Ucoded[self.cent_y_idx, self.cent_x_idx])
+                phase_0 = np.angle(Ucoded_normal[self.cent_y_idx, self.cent_x_idx])
 
-                selected_vals = (np.abs(self.rot_xx[phi_idx]) < 5*dx_dist)&(np.abs( self.rot_yy[phi_idx]) < 5*dx_dist)
+                selected_vals = (np.abs(self.rot_xx[phi_idx]) < 15*dx_dist)&(np.abs(self.rot_yy[phi_idx]) < 15*dx_dist)
 
-                phases_train = np.angle(Ucoded[selected_vals]).ravel()
+                phases_train = np.angle(Ucoded_normal[selected_vals]).ravel()
                 x_train = self.rot_xx[phi_idx][selected_vals].ravel()
                 peak_freq = self.find_peak_freq(phases_train, x_train, freq)
 
+                # plt.figure()
+                # plt.scatter(x_train,  phases_train)
+                # plt.show()
 
                 encoded_dict = {
                     "peak_freq" : peak_freq,
@@ -194,6 +210,8 @@ class HyperColomn:
                 }
                 Encoded[freq_idx] = encoded_dict
 
+        mean_intensity = np.sum(self.gaussian * U)
+        Encoded.append({"mean_intensity": mean_intensity, })
         pprint(Encoded)
         return Encoded
 
@@ -204,11 +222,14 @@ class HyperColomn:
         U_restored = np.zeros_like(self.xx)
 
         for freq_idx, freq_encoded in enumerate(Encoded):
-            A = freq_encoded["abs"]
-            peak_freq = freq_encoded["peak_freq"]
-            phi_0 = freq_encoded["phi_0"]
-            phi_idx = freq_encoded["direction_idx"]
-            U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] * 2 * np.pi + phi_0)
+            if freq_idx == len(Encoded)-1:
+                U_restored += freq_encoded["mean_intensity"]
+            else:
+                A = freq_encoded["abs"]
+                peak_freq = freq_encoded["peak_freq"]
+                phi_0 = freq_encoded["phi_0"]
+                phi_idx = freq_encoded["direction_idx"]
+                U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] * 2 * np.pi + phi_0)
         return U_restored
 
 
@@ -222,28 +243,29 @@ if __name__ == '__main__':
     centers = [0, 0]
     centers = [0, 0]
     # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
-    angles = np.linspace(-np.pi, np.pi, 16, endpoint=False)
+    angles = np.linspace(-np.pi, np.pi, 32, endpoint=False)
 
     # print(angles)
-    Len_y = 200
-    Len_x = 200
+    Len_y = 500
+    Len_x = 500
 
     nsigmas = 8
     sigminimum = 0.05
     sigmaximum = 0.005
     sigmas = np.linspace(sigminimum, sigmaximum, nsigmas)
-    xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
+    xx, yy = np.meshgrid(np.linspace(-1.0, 1.0, Len_y), np.linspace(1.0, -1.0, Len_x))
 
     image = np.zeros_like(xx)
-    frequencies = np.asarray([1.5, 8.0, 16.0, 80])  # np.geomspace(1.5, 25, num=5) #
+    frequencies = np.asarray([6.0, ]) # np.asarray([1.5, 8.0, 16.0, 80])  # np.geomspace(1.5, 25, num=5) #
+
     for idx in range(1):
-        f = 80 # np.random.rand() * 20 # 10 # frequencies[2] #
+        f = 5.0 # np.random.rand() * 20 # 10 # frequencies[2] #
         # print(f)
-        an = np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
+        an = 0.5 * np.pi # np.random.choice(angles) # np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
         # an = np.pi * 0.5 # np.pi  # np.random.choice(angles)
 
         xx_ = xx * np.cos(an) - yy * np.sin(an)
-        image += np.cos(2 * np.pi * xx_ * f + 0.5*np.pi)
+        image += 0.5*( np.cos(2 * np.pi * xx_ * f + 0.5*np.pi) + 1)
 
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas, frequencies=frequencies, params=params)

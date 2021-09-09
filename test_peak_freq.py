@@ -11,39 +11,50 @@ def get_phi_0(slope, phi_train, x_train):
 def get_Dist(slope, phi_train, x_train):
     phi_0 = get_phi_0(slope, phi_train, x_train)
     D = 2 * (1 - np.mean( np.cos(phi_train - 2*np.pi*slope*x_train - phi_0)  ) )
+    if slope < 0.5:
+        D += 100
 
     return D
 
 
 
 x, dx = np.linspace(-0.5, 0.5, 200, retstep=True)
-freq = 20
-sig = np.cos(2*np.pi * x * freq)
+freq = 5
+sig = 0.5 * ( np.cos(2*np.pi * x * freq) + 1)
 H = 1 / (np.pi * x)
 
 H = H / np.sqrt( np.sum(H**2) )
 analitic_sig = sig + 1j * np.convolve(sig, H, mode='same')
-#sig = hilbert(sig)
+# sig = hilbert(sig)
 
 
 phases_train = np.angle(analitic_sig)
 x_train = x
 
+# freq = 1.5
+# npzfile = np.load("./results/saved.npz")
+# phases_train = npzfile["arr_0"]
+# x_train  = npzfile["arr_1"]
+
+
+
+
 plt.figure()
-plt.plot(x_train, phases_train, label="Direct convolve")
+plt.scatter(x_train, phases_train, s=1.5, label="Direct convolve")
 plt.plot(x_train, np.angle(hilbert(sig)), label="Scipy hilbert")
 plt.legend()
 #res = minimize(get_Dist, x0=2, args=(phis, x), method='Powell' )
 
-res = minimize_scalar(get_Dist, args=(phases_train, x_train), bounds=[0.8*freq, 1.5*freq], method='Bounded')
+res = minimize_scalar(get_Dist, args=(phases_train, x_train), bounds=[0.5, 50], method='brent')
 
 print (res.x)
 
-slopes = np.linspace(0.2, 90, 200)
+slopes = np.linspace(0.8, 50, 200)
 D = np.zeros_like(slopes)
 for idx, slope in enumerate(slopes):
     D[idx] = get_Dist(slope, phases_train, x_train)
 
+print(slopes[ np.argmin(D) ])
 
 plt.figure()
 plt.plot(slopes, D)

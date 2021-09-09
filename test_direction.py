@@ -18,16 +18,16 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
 
     ####################################################################
     ### Создаем коррдинатную сетку
-    Len_y = 200 # number points by Y axis in image
-    Len_x = 200 # number points by X axis in image
+    Len_y = 1000 # number points by Y axis in image
+    Len_x = 1000 # number points by X axis in image
 
-    xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_y), np.linspace(0.5, -0.5, Len_x))
+    xx, yy = np.meshgrid(np.linspace(-1.0, 1.0, Len_y), np.linspace(1.0, -1.0, Len_x))
     # xx, yy - двумерные массивы задающие сетку от -0,5 до 0,5 по Len_x и Len_y точек соответсвенно
     ####################################################################
     ### Генерируем сигнал
     # signal_freq - частота синусойды в сигнале, получаем из аргументов функции
     # phi_0 - фаза синусойды в сигнале, получаем из аргументов функции
-    image = np.cos(2 * np.pi * signal_freq * yy + phi_0)
+    image = 0.5 * (np.cos(2 * np.pi * signal_freq * yy + phi_0) + 1)
 
     ### рисуем сигнал
     fig_sig, axes_sig = plt.subplots(ncols=2, figsize=(10, 5))
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     dev = np.abs(np.cos(max_direction_response - 0.5*np.pi)) #,  0.5*(np.cos( max_direction_response + 0.5*np.pi) + 1))
     gr2 = axes[1].pcolormesh(phi_0s, signal_freqs, dev, cmap="rainbow", shading="auto")
-    axes[1].set_title("Максимальное направление")
+    axes[1].set_title("Точность определения направления")
     axes[1].set_xlabel("Начальная фаза")
     axes[1].set_ylabel("Частота сигнала")
     plt.colorbar(gr2, ax=axes[1])
