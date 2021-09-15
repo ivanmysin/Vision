@@ -31,34 +31,47 @@ analitic_sig = sig + 1j * np.convolve(sig, H, mode='same')
 phases_train = np.angle(analitic_sig)
 x_train = x
 
-# freq = 1.5
-# npzfile = np.load("./results/saved.npz")
-# phases_train = npzfile["arr_0"]
-# x_train  = npzfile["arr_1"]
+freq = 1.5
+npzfile = np.load("./results/saved.npz")
+phases_train = npzfile["arr_0"]
+x_train  = npzfile["arr_1"]
 
 
 
 
-plt.figure()
-plt.scatter(x_train, phases_train, s=1.5, label="Direct convolve")
-plt.plot(x_train, np.angle(hilbert(sig)), label="Scipy hilbert")
-plt.legend()
+fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
+axes[0].scatter(x_train, phases_train, s=1.5, label="Convolve with aproximated hilbert kernel")
+#plt.plot(x_train, np.angle(hilbert(sig)), label="Scipy hilbert")
+
+axes[0].set_xlabel("Значения Х, вдоль направления")
+axes[0].set_ylabel("Фаза, вдоль направления, рад")
 #res = minimize(get_Dist, x0=2, args=(phis, x), method='Powell' )
 
 res = minimize_scalar(get_Dist, args=(phases_train, x_train), bounds=[0.5, 50], method='brent')
 
-print (res.x)
+print ("Наклон после оптимизации ", res.x)
 
 slopes = np.linspace(0.8, 50, 200)
 D = np.zeros_like(slopes)
 for idx, slope in enumerate(slopes):
     D[idx] = get_Dist(slope, phases_train, x_train)
 
-print(slopes[ np.argmin(D) ])
+slope_2 = slopes[ np.argmin(D) ]
+print("Наклон после перебора ", slope_2)
 
-plt.figure()
-plt.plot(slopes, D)
+trend_line = 2*np.pi*slope_2*x_train + get_phi_0(slope_2, phases_train, x_train)
+
+axes[0].plot(x_train, trend_line, color="r", label="Линия тренда")
+
+axes[0].legend()
+axes[1].plot(slopes, D)
+axes[1].set_xlabel("Наклон, Гц")
+axes[1].set_ylabel("Оптимизируемая функция")
 plt.show()
+
+fig.savefig("./results/phases.png")
+
+
 
 """
 peak_freqs = np.convolve(phis, [1, -1], mode='valid')

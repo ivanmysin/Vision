@@ -10,8 +10,8 @@ class HyperColomn:
         self.cent_x = centers[0]
         self.cent_y = centers[1]
         self.params = params
-        self.xx = xx - self.cent_x
-        self.yy = yy - self.cent_y
+        self.xx = np.copy(xx - self.cent_x)
+        self.yy = np.copy(yy - self.cent_y)
 
         self.x = self.xx[0, :]
         self.y = self.yy[:, 0]
@@ -37,7 +37,7 @@ class HyperColomn:
 
         self.kotelnikov_limit = 0.5 / np.sqrt(self.dx**2 + self.dy**2)
         self.frequencies = self.frequencies[self.frequencies < self.kotelnikov_limit]
-
+        self.params = params
 
 
         self.mexican_hats = []
@@ -50,13 +50,16 @@ class HyperColomn:
 
         self.normalization_factor_H = 1
 
+
     def aproximate_hilbert_kernel(self):
         w0 = np.ones(self.sigmas.size, dtype=np.float)
         opt_res = minimize(self._hilbert_dgs_diff, x0=w0, args=(self.xx, self.yy, self.sigmas))
         self.dg_weiths = opt_res.x
         #### np.save(self.file_saving_ws, self.dg_weiths)
         self.H_aproxed = self.sum_gaussian_derivaries(self.dg_weiths, self.xx, self.yy, self.sigmas)  #
-        self.normalization_factor_H = np.sqrt(np.sum(self.H_aproxed[self.x.size//2, :]**2))
+
+        #print( np.sum(self.H_aproxed[self.x.size//2, :]**2) ) # !!!!!!!
+        self.normalization_factor_H = 1.0 # np.sqrt(np.sum(self.H_aproxed[self.x.size//2, :]**2))
         self.H_aproxed_normed = self.H_aproxed / self.normalization_factor_H
 
 
@@ -151,11 +154,32 @@ class HyperColomn:
         return D
 
 
-    def find_peak_freq(self, phases_train, x_train, freq):
+    def find_peak_freq(self, phases_train, x_train, freq, y_train):
         # res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
         np.savez("./results/saved.npz", phases_train, x_train)
-        res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[0.5, self.kotelnikov_limit], method='brent')
-        slope = float(res.x)
+
+        if self.params["use_circ_regression"]:
+            slopes = np.linspace(0.5*freq, 1.5*freq, 200)
+            D = np.zeros_like(slopes)
+            for idx, slope in enumerate(slopes):
+                D[idx] = self._get_Dist(slope, phases_train, x_train)
+            slope = slopes[ np.argmin(D) ]
+
+            res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[slope-2, slope+2], method='bounded')
+            slope = float(res.x)
+        else:
+
+            # y_train
+            idx1 = np.argmin( np.abs(x_train - 2*self.dx)*np.abs(y_train) )
+            idx2 = np.argmin( np.abs(x_train + 2*self.dx)*np.abs(y_train) )
+            dist_x = np.abs(x_train[idx2] - x_train[idx1])
+
+            phase_diff = phases_train[idx2] - phases_train[idx1]
+            phase_diff = phase_diff % (2*np.pi)
+            if phase_diff < 0:
+                phase_diff += 2*np.pi
+            slope = phase_diff / ( 2*np.pi * dist_x )
+
         return slope
 
 
@@ -195,11 +219,8 @@ class HyperColomn:
 
                 phases_train = np.angle(Ucoded_normal[selected_vals]).ravel()
                 x_train = self.rot_xx[phi_idx][selected_vals].ravel()
-                peak_freq = self.find_peak_freq(phases_train, x_train, freq)
-
-                # plt.figure()
-                # plt.scatter(x_train,  phases_train)
-                # plt.show()
+                y_train = self.rot_yy[phi_idx][selected_vals].ravel()
+                peak_freq = self.find_peak_freq(phases_train, x_train, freq, y_train)
 
                 encoded_dict = {
                     "peak_freq" : peak_freq,
@@ -238,7 +259,9 @@ class HyperColomn:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    params = {}
+    params = {
+        "use_circ_regression": True,
+    }
 
     centers = [0, 0]
     centers = [0, 0]
