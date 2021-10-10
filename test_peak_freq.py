@@ -31,10 +31,10 @@ analitic_sig = sig + 1j * np.convolve(sig, H, mode='same')
 phases_train = np.angle(analitic_sig)
 x_train = x
 
-freq = 1.5
-npzfile = np.load("./results/saved.npz")
-phases_train = npzfile["arr_0"]
-x_train  = npzfile["arr_1"]
+# freq = 1.5
+# npzfile = np.load("./results/saved.npz")
+# phases_train = npzfile["arr_0"]
+# x_train  = npzfile["arr_1"]
 
 
 
