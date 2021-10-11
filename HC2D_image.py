@@ -37,8 +37,8 @@ params = {
     "use_circ_regression": True,
 }
 
-radiuses = np.asarray([0.1, 0.05, 0.2]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
-angles = np.asarray([0.25*np.pi, ]) # np.linspace(-np.pi, np.pi, 30, endpoint=True) # np.linspace(0, 0.5*np.pi, 10, endpoint=True) #
+radiuses = np.asarray([0.05, 0.1, 0.2]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
+angles =  np.linspace(-np.pi, np.pi, 10, endpoint=True) #np.asarray([0.25*np.pi, ]) # np.linspace(0, 0.5*np.pi, 10, endpoint=True) #
 
 NGHs = int(radiuses.size*angles.size) # число гиперколонок
 
@@ -60,14 +60,19 @@ idx = 0
 for r in radiuses:
     nsigmas = 8
 
-    sigminimum = sigma_teor_min * (1 + r)
+    sigminimum = sigma_teor_min + 0.2*r # * (1 + r)
     sigmaximum = 10 * sigminimum # 0.005 # функция от r
 
     sigmas = np.linspace(sigminimum, sigmaximum, nsigmas)
 
-    frequencies = np.asarray([12.0, ])  # 1 / (2*np.pi*np.geomspace(sigminimum, sigmaximum, 5))
 
-    # print(r, frequencies)
+    freq_max = freq_teor_max * 0.8*(1 - r)
+    freq_min = 0.05*freq_max
+
+    # print(freq_min, freq_max)
+    frequencies = np.geomspace(freq_min, freq_max, 5) # np.asarray([12.0, ])  #
+
+    print(r, frequencies)
 
     for an in angles:
         xc = r * np.cos(an)
@@ -86,7 +91,7 @@ for r in radiuses:
         Encoded = hc.encode(image)
         image_restored_by_HCs[:, :, idx] = hc.decode(Encoded)  # np.random.rand(xx.size).reshape(xx.shape) #
 
-        sigma_rep_field = sigminimum
+        sigma_rep_field = sigmaximum
         receptive_field = np.exp( -0.5*((yy - yc)/sigma_rep_field)**2 - 0.5*((xx - xc)/sigma_rep_field)**2 )
         receptive_fields[:, :, idx] = receptive_field
 

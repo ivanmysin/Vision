@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=500, Len_y=500, direction=2.3):
     xx, yy = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
     xx_rot = xx * np.cos(direction) - yy * np.sin(direction)
@@ -26,8 +25,8 @@ Freq = 15
 Direction = 2.3
 
 errs = {
-    "freq_error" : 1.5,      # Hz
-    "dir_error" : 0.0,       # Rad
+    "freq_error" : 2.5,      # Hz
+    "dir_error" : 0.1,       # Rad
     "phi_0_error" :  0.1,    # Rad
 }
 
@@ -60,7 +59,7 @@ idx = 0
 for r in radiuses:
     nsigmas = 8
 
-    sigminimum = sigma_teor_min * (1 + r)
+    sigminimum = sigma_teor_min + 0.2*r #* (1 + r)
     sigmaximum = 10 * sigminimum # 0.005 # функция от r
 
     for an in angles:
