@@ -6,7 +6,7 @@ from HyperColomn2D import HyperColomn
 import matplotlib.pyplot as plt
 
 
-def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=500, Len_y=500, direction=2.3):
+def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=200, Len_y=200, direction=2.3):
     xx, yy = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
     xx_rot = xx * np.cos(direction) - yy * np.sin(direction)
     image = 0.5*(np.cos(2*np.pi * xx_rot * freq)+1) * np.exp( -0.5*((xx - cent_x)/sigma)**2 - 0.5*((yy - cent_y)/sigma)**2 )
@@ -34,11 +34,11 @@ delta_x = xx[0, 1] - xx[0, 0]
 delta_y = yy[1, 0] - yy[0, 0]
 
 params = {
-    "use_circ_regression": True,
+    "use_circ_regression": False,
 }
 
-radiuses = np.asarray([0.05, 0.1, 0.2]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
-angles =  np.linspace(-np.pi, np.pi, 10, endpoint=True) #np.asarray([0.25*np.pi, ]) # np.linspace(0, 0.5*np.pi, 10, endpoint=True) #
+radiuses = np.geomspace(0.05, 0.9, 30) #np.asarray([0.05, 0.1, 0.2]) ##  np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
+angles =  np.linspace(-np.pi, np.pi, 30, endpoint=True) #np.asarray([0.25*np.pi, ]) # np.linspace(0, 0.5*np.pi, 10, endpoint=True) #
 
 NGHs = int(radiuses.size*angles.size) # число гиперколонок
 
@@ -50,7 +50,7 @@ hc_centers_y = np.zeros(NGHs, dtype=np.float)
 image_restored_by_HCs = np.zeros( (Len_y, Len_x, NGHs), dtype=np.float )
 receptive_fields = np.zeros( (Len_y, Len_x, NGHs), dtype=np.float )
 
-directions = np.linspace(-np.pi, np.pi, 32, endpoint=False)
+directions = np.linspace(-np.pi, np.pi, 16, endpoint=False)
 
 
 freq_teor_max = 0.5 / (np.sqrt(delta_x**2 + delta_y**2))
@@ -70,7 +70,7 @@ for r in radiuses:
     freq_min = 0.05*freq_max
 
     # print(freq_min, freq_max)
-    frequencies = np.geomspace(freq_min, freq_max, 5) # np.asarray([12.0, ])  #
+    frequencies = np.asarray([12.0, ])  #np.geomspace(freq_min, freq_max, 5) #5
 
     print(r, frequencies)
 
@@ -91,7 +91,7 @@ for r in radiuses:
         Encoded = hc.encode(image)
         image_restored_by_HCs[:, :, idx] = hc.decode(Encoded)  # np.random.rand(xx.size).reshape(xx.shape) #
 
-        sigma_rep_field = sigmaximum
+        sigma_rep_field = sigminimum
         receptive_field = np.exp( -0.5*((yy - yc)/sigma_rep_field)**2 - 0.5*((xx - xc)/sigma_rep_field)**2 )
         receptive_fields[:, :, idx] = receptive_field
 
@@ -110,8 +110,8 @@ fig, axes = plt.subplots(ncols=2, figsize=(10, 5), sharex=True, sharey=True)
 axes[0].pcolor(xx[0, :], yy[:, 0], image, cmap='gray', shading='auto')   # imshow(image, cmap="gray")
 axes[1].pcolor(xx[0, :], yy[:, 0], image_restored, cmap='gray', shading='auto')
 axes[1].scatter(hc_centers_x, hc_centers_y, s=2.5, color="red")
-axes[1].hlines([0, ], xmin=-1, xmax=1, color="red")
-axes[1].vlines([0, ], ymin=-1, ymax=1, color="red")
+axes[1].hlines([0, ], xmin=-1, xmax=1, color="green")
+axes[1].vlines([0, ], ymin=-1, ymax=1, color="green")
 
 fig.savefig("./results/hypercolumns_image_restore2D.png")
 plt.show()

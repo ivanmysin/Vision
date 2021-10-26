@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=500, Len_y=500, direction=2.3):
+def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=200, Len_y=200, direction=2.3):
     xx, yy = np.meshgrid(np.linspace(-1, 1, Len_x), np.linspace(1, -1, Len_y))
     xx_rot = xx * np.cos(direction) - yy * np.sin(direction)
     image = np.cos(2*np.pi * xx_rot * freq) #0.5*(+1) #* np.exp( -0.5*((xx - cent_x)/sigma)**2 - 0.5*((yy - cent_y)/sigma)**2 )
@@ -16,18 +16,18 @@ def decode(xx, yy, freq, direction, xc, yc, freq_error=0, dir_error=0, phi_0_err
     xx_ = xx * np.cos(direction) - yy * np.sin(direction)
     xhc_ = xc * np.cos(direction) - yc * np.sin(direction)
     phi_0 += 2*np.pi * freq * xhc_
-    image_restored = np.cos(2*np.pi * (xx_ - xhc_) * freq + phi_0) # 0.5*(+1)
+    image_restored = np.cos(2*np.pi * (xx_ - xhc_) * freq + phi_0) / (np.mean( (xx - xc)**2) + np.mean( (yy - yc)**2)) # 0.5*(+1)
     return image_restored
 
 ######################################################
 
-Freq = 15
+Freq = 5
 Direction = 2.3
 
 errs = {
-    "freq_error" : 2.5,      # Hz
+    "freq_error" : 0.5,      # Hz
     "dir_error" : 0.1,       # Rad
-    "phi_0_error" :  0.1,    # Rad
+    "phi_0_error" :  0.0,    # Rad
 }
 
 
@@ -89,9 +89,9 @@ image_restored = np.sum(image_restored_by_HCs*receptive_fields, axis=2)
 fig, axes = plt.subplots(ncols=2, figsize=(10, 5), sharex=True, sharey=True)
 axes[0].pcolor(xx[0, :], yy[:, 0], image, cmap='gray', shading='auto')   # imshow(image, cmap="gray")
 axes[1].pcolor(xx[0, :], yy[:, 0], image_restored, cmap='gray', shading='auto')
-axes[1].scatter(hc_centers_x, hc_centers_y, s=2.5, color="red")
+axes[1].scatter(hc_centers_x, hc_centers_y, s=0.5, color="red")
 axes[1].hlines([0, ], xmin=-1, xmax=1, color="blue")
 axes[1].vlines([0, ], ymin=-1, ymax=1, color="blue")
 
-#fig.savefig("./results/hypercolumns_image_restore2D.png")
+fig.savefig("./results/accuracy_new.png")
 plt.show()

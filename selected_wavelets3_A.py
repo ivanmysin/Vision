@@ -1,5 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+pltparams = {'legend.fontsize': 'x-large',
+          'figure.figsize': (15, 5),
+         'axes.labelsize': 16,
+         'axes.titlesize': 18,
+         'xtick.labelsize': 14,
+         'ytick.labelsize': 14,
+         }
+plt.rcParams.update(pltparams)
+
 from scipy.signal import hilbert
 import sys
 sys.path.append("../")
@@ -20,7 +29,7 @@ cuted = t - t[-1] + 5*sigma_ends
 ends[cuted>0] *=  np.exp( -0.5*(cuted[cuted>0] /sigma_ends)**2 )
 
 w = 47 # np.linspace(2, 25, t.size) # 15 # 15 #
-u =  10*np.cos(2*np.pi*w*t*t) + 7*np.cos(2*np.pi*25.6*t) + 3*np.cos(2*np.pi*5*t)
+u =  np.cos(2*np.pi*w*t*t) + 0.7*np.cos(2*np.pi*25.6*t) + 0.3*np.cos(2*np.pi*5*t)
 u *= ends
 
 
@@ -112,34 +121,43 @@ decode2 = pycwt.icwt(wave, scales, dt, wavelet='mexicanhat')
 ###############################################################################
 
 
-fig, axes = plt.subplots(nrows=4, sharex=True, figsize=(15, 15) )
-axes[0].plot(t, u.real)
+fig, axes = plt.subplots(nrows=1, sharex=True, figsize=(15, 5) )
+axes.plot(t, u.real)
 
 tcentsd = t[15::30]
-axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
-axes[0].set_xlim(0, 1)
-axes[0].set_title("Сигнал (10 Гц)")
-axes[0].vlines(t[30::30], -2, 2, color="black")
+axes.scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
+axes.set_xlim(0, 1)
+axes.set_title("Cигнал")
+axes.vlines(t[30::30], -2, 2, color="black")
+
+#
+#
+# c = axes[1].pcolor(t, frequencies, wave.real, shading='auto')
+# axes[1].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
+# axes[1].set_ylabel("Частота, Гц")
+# axes[1].set_title("Вейвлет спектр по мексиканским шляпам")
+# #fig.colorbar(c, ax=axes[1])
+# axes[2].pcolor(t, frequencies, wavelet_u_restored.real, shading='auto')
+# axes[2].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
+# axes[2].set_ylabel("Частота, Гц")
+# axes[2].set_title("Восстановленный вейвлет спектр")
+#
+# axes[3].plot(t, decode, color="orange", label="Восстановленный сигнал")
+# # axes[3].plot(t, decode2, "")
+# axes[3].plot(t, u.real, color="green", label="Исходный сигнал")
+# #axes[3].plot(tcol, np.cos(phases), tcol, np.cos(phases_true))
+# # "Оранжевый - точно восстановленный, синий - восстановленный с редукцией по ГК, зелёный - исходный"
+# axes[3].set_title("Восстановленный сигнал")
+# axes[3].legend(loc="upper left")
+# axes[3].set_ylim(None, 4)
+# axes[3].vlines(t[30::30], -2, 2, color="black")
+# axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
+#
+
+fig.savefig(filename, dpi=500)
 
 
 
-c = axes[1].pcolor(t, frequencies, wave.real, shading='auto')
-axes[1].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
-axes[1].set_ylabel("Частота, Гц")
-axes[1].set_title("Вейвлет спектр по мексиканским шляпам")
-#fig.colorbar(c, ax=axes[1])
-axes[2].pcolor(t, frequencies, wavelet_u_restored.real, shading='auto')
-axes[2].scatter(tcentsd, np.zeros_like(tcentsd)+10, color="red", s=15)
-axes[2].set_ylabel("Frequency, Hz")
-axes[2].set_title("Восстановленный вейвлет спектр")
-
-axes[3].plot(t, decode, t, decode2, t, u.real)
-#axes[3].plot(tcol, np.cos(phases), tcol, np.cos(phases_true))
-axes[3].set_title("Оранжевый - точно восстановленный, синий - восстановленный с редукцией по ГК, зелёный - исходный")
-
-axes[3].vlines(t[30::30], -2, 2, color="black")
-axes[0].scatter(tcentsd, np.zeros_like(tcentsd), color="red", s=15)
 
 
-fig.savefig(filename, dpi=250)
 plt.show()

@@ -1,11 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# plt.rc('text', usetex=True)
+pltparams = {'legend.fontsize': 'x-large',
+          'figure.figsize': (15, 5),
+         'axes.labelsize': 18,
+         'axes.titlesize': 18,
+         'xtick.labelsize': 14,
+         'ytick.labelsize': 14,
+         }
+plt.rcParams.update(pltparams)
 
 
-sigmas = [0.002, 0.2]#  0.05, 0.1, 0.2]
+sigmas = [0.02, 0.2]#  0.05, 0.1, 0.2]
 
-fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(20, 10))
+fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(18, 9))
 for sigma in sigmas:
 
     t = np.linspace(0, 1, 900)
@@ -33,11 +40,12 @@ for sigma in sigmas:
 
 
     ax[0, 0].plot(t, kernel, label=r"$\sigma="+str(sigma)+"$") #
-    ax[0, 0].set_title("Производная гауссианы")
+    ax[0, 0].set_title("Производная гауссианы", fontsize=22)
     #ax[0, 1].plot(freqs, theor_spec, color="blue", label="theor", linewidth=2)
     ax[0, 1].plot(freqs, theor_spec, label=r"$\sigma="+str(sigma)+"$", linewidth=1)
     # ax[0, 1].plot(freqs, fft_spec, color="green", label="fft")
     ax[0, 1].set_xlim(0, 100)
+    ax[0, 1].set_xlabel("Частота, Гц")
 
     ax[0, 1].legend()
     ax[0, 0].legend()
@@ -52,10 +60,11 @@ for sigma in sigmas:
     # fig, ax = plt.subplots(ncols=2)
 
     ax[1, 0].plot(t, kernel, label=r"$\sigma="+str(sigma)+"$")
-    ax[1, 0].set_title("Вторая производная гауссианы")
+    ax[1, 0].set_title("Вторая производная гауссианы", fontsize=22)
     ax[1, 1].plot(freqs, theor_spec, label=r"$\sigma="+str(sigma)+"$", linewidth=1) # color="blue",
     # ax[1, 1].plot(freqs, fft_spec, color="green", label="fft")
     ax[1, 1].set_xlim(0, 100)
+    ax[1, 1].set_xlabel("Частота, Гц")
     #
     ax[1, 1].legend()
     ax[1, 0].legend()
@@ -84,5 +93,5 @@ ax[1, 1].set_ylim(0, None)
 # ax[2, 1].set_ylim(0, None)
 # ax[2, 1].legend()
 
-fig.savefig("./results/kernel_spectrums.png", dpi=200)
+fig.savefig("./results/kernel_spectrums.png", dpi=500)
 plt.show()

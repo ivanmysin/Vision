@@ -168,10 +168,9 @@ class HyperColomn:
             res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[slope-2, slope+2], method='bounded')
             slope = float(res.x)
         else:
-
             # y_train
-            idx1 = np.argmin( np.abs(x_train - 2*self.dx)*np.abs(y_train) )
-            idx2 = np.argmin( np.abs(x_train + 2*self.dx)*np.abs(y_train) )
+            idx1 = np.argmin( np.abs(x_train - 2*self.dx) + np.abs(y_train) )
+            idx2 = np.argmin( np.abs(x_train + 2*self.dx) + np.abs(y_train) )
             dist_x = np.abs(x_train[idx2] - x_train[idx1])
 
             phase_diff = phases_train[idx2] - phases_train[idx1]
@@ -233,7 +232,9 @@ class HyperColomn:
 
         mean_intensity = np.sum(self.gaussian * U)
         Encoded.append({"mean_intensity": mean_intensity, })
-        pprint(Encoded)
+
+
+        # pprint(Encoded)
         return Encoded
 
 
