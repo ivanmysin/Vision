@@ -88,7 +88,7 @@ class HyperColomn:
                 hat = self.get_rickers(sigma, xx, yy)
                 self.mexican_hats[phi_idx].append(hat)
 
-        sigma = np.max(self.sigmas)
+        sigma = np.max(self.sigmas) # !!!!
         self.gaussian = np.exp(-self.yy**2 / (2 * sigma**2) - self.xx**2 / (2 * sigma**2))
         self.gaussian /= np.sum(self.gaussian)
 
@@ -227,11 +227,19 @@ class HyperColomn:
                     "abs" : np.abs(Ucoded[self.cent_y_idx, self.cent_x_idx]),
                     "dominant_direction" : self.angles[phi_idx], # direction,
                     "direction_idx" : phi_idx,
+                    "central_wavelet_freq" : freq,
                 }
                 Encoded[freq_idx] = encoded_dict
 
         mean_intensity = np.sum(self.gaussian * U)
-        Encoded.append({"mean_intensity": mean_intensity, })
+        hc_data = {
+            "mean_intensity": mean_intensity,
+            "cent_x" : self.cent_x,
+            "cent_y" : self.cent_y,
+
+        }
+
+        Encoded.append(hc_data)
 
 
         # pprint(Encoded)
@@ -252,6 +260,8 @@ class HyperColomn:
                 phi_0 = freq_encoded["phi_0"]
                 phi_idx = freq_encoded["direction_idx"]
                 U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] * 2 * np.pi + phi_0)
+
+        U_restored = U_restored / (np.mean( self.xx**2) + np.mean( self.yy**2))
         return U_restored
 
 

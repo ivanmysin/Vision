@@ -16,7 +16,7 @@ def decode(xx, yy, freq, direction, xc, yc, freq_error=0, dir_error=0, phi_0_err
     xx_ = xx * np.cos(direction) - yy * np.sin(direction)
     xhc_ = xc * np.cos(direction) - yc * np.sin(direction)
     phi_0 += 2*np.pi * freq * xhc_
-    image_restored = np.cos(2*np.pi * (xx_ - xhc_) * freq + phi_0) / (np.mean( (xx - xc)**2) + np.mean( (yy - yc)**2)) # 0.5*(+1)
+    image_restored = np.cos(2*np.pi * (xx_ - xhc_) * freq + phi_0) #/ (np.mean( (xx - xc)**2) + np.mean( (yy - yc)**2)) # 0.5*(+1)
     return image_restored
 
 ######################################################
@@ -59,7 +59,7 @@ idx = 0
 for r in radiuses:
     nsigmas = 8
 
-    sigminimum = sigma_teor_min + 0.2*r #* (1 + r)
+    sigminimum = sigma_teor_min + 0.01*r #+ 0.2*r
     sigmaximum = 10 * sigminimum # 0.005 # функция от r
 
     for an in angles:
