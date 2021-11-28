@@ -71,11 +71,16 @@ class HyperColomns:
 
 
     #########################################################################
-    def encoded2vector(self, Encoded_full):
+    def encoded2vector(self, Encoded_full, return_feasures_names=False):
         Nfreqs = len(Encoded_full[0]) - 1
         Nfreq_feasures = 6
         N = len(Encoded_full) * (Nfreqs * Nfreq_feasures + 1)
         X_train = np.zeros(N, dtype=np.float64)
+
+        if return_feasures_names:
+            feasures_names = []
+            # datatype, xc, yc, cent_freq,
+            name_template = "{datatype}, {cent_freq}, {xc}, {yc}"
 
         gidx = 0
         for hc in Encoded_full:
@@ -83,18 +88,59 @@ class HyperColomns:
                 try:
                     X_train[gidx] = freq_data["abs"]
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="abs", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                     X_train[gidx] = freq_data["peak_freq"]
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="peak_freq", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                     X_train[gidx] = np.sin(freq_data["dominant_direction"])
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="sin of direction", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                     X_train[gidx] = np.cos(freq_data["dominant_direction"])
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="cos of direction", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                     X_train[gidx] = np.sin(freq_data["phi_0"])
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="sin of phi_0", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                     X_train[gidx] = np.cos(freq_data["phi_0"])
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="cos of phi_0", cent_freq=freq_data["central_wavelet_freq"], xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
+
                 except KeyError:
                     X_train[gidx] = freq_data["mean_intensity"]
                     gidx += 1
+                    if return_feasures_names:
+                        name = name_template.format( datatype="mean_U", cent_freq=0, xc=hc[-1]["cent_x"], yc=hc[-1]["cent_y"]   )
+                        feasures_names.append(name)
 
-        return X_train
+        if return_feasures_names:
+            return X_train, feasures_names
+        else:
+            return X_train
+
+    def get_feature_description(self, Encoded_full):
+        feasures_names = []
+
+        # type_data, xc, yc, cent_freq,
+        name = "abs, {cent_freq}, {xc}, {yc}".format(0.1, 0.1)
+
+
+        feasures_names.append(name)
+
+        return feasures_names

@@ -6,7 +6,7 @@ import h5py
 
 
 path = "./results/mnist/"
-dsetfilename = "encoded.hdf5"
+dsetfilename = "encoded_usereg_true.hdf5"
 (X_train, Y_train), (X_test, Y_test) = mnist.load_data()
 
 # X_train = np.random.rand(1, 28, 28)
@@ -23,12 +23,12 @@ Len_y, Len_x = image.shape
 xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_x), np.linspace(0.5, -0.5, Len_y))
 
 hcparams = {
-    "use_circ_regression": False,
+    "use_circ_regression": True,
 }
 
-radiuses = np.asarray([0.1, 0.2, 0.4]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
-angles = np.asarray([0.25*np.pi, ]) # np.linspace(-np.pi, np.pi, 30, endpoint=False) # np.linspace(0, 0.5*np.pi, 10, endpoint=True)  #
-directions = np.linspace(-np.pi, np.pi, 16, endpoint=False)
+radiuses = np.asarray([0.05, 0.1, 0.2, 0.4]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #
+angles = np.linspace(-np.pi, np.pi, 30, endpoint=False) #np.asarray([0.25*np.pi, ]) #  np.linspace(0, 0.5*np.pi, 10, endpoint=True)  #
+directions = np.linspace(-np.pi, np.pi, 32, endpoint=False)
 
 
 V1 = HyperColomns(radiuses, angles, directions, xx, yy, hcparams)
@@ -51,17 +51,24 @@ with h5py.File(path+dsetfilename, 'w') as h5file:
             image = X[idx, :, :] / 255
             image_class = np.zeros(10, dtype=np.int)
             image_class[ Y[idx] ] = 1
+
             encoded = V1.encode(image)
             # image_restored = V1.decode(encoded)
-            image_feasures = V1.encoded2vector(encoded)
+            if idx != 0:
+                image_feasures = V1.encoded2vector(encoded)
+            else:
+                image_feasures, feasures_names = V1.encoded2vector(encoded, return_feasures_names=True)
+                X_dset = h5file.create_dataset('X_'+key, (Nobj, image_feasures.size), dtype='f16' )
+                Y_dset = h5file.create_dataset('Y_'+key, (Nobj, 10), dtype='i8')
+                for feas_idx, f_name in enumerate(feasures_names):
+                    h5file.attrs[f_name] = feas_idx
 
-            if idx == 0:
-                X_dset = h5file.create_dataset('X_'+key, (image_feasures.size, Nobj), dtype='f16' )
-                Y_dset = h5file.create_dataset('Y_'+key, (10, Nobj), dtype='i8')
+            X_dset[idx, :] = image_feasures
+            Y_dset[idx, :] = image_class
 
-            X_dset[:, idx] = image_feasures
-            Y_dset[:, idx] = image_class
-
+            if idx%1000 == 0:
+                print("Кодируем: ", idx, " ", key)
+            # break
 
 # fig, axes = plt.subplots(ncols=2, figsize=(10, 5), sharex=True, sharey=True)
 # axes[0].pcolor(xx[0, :], yy[:, 0], image, cmap='gray', shading='auto')

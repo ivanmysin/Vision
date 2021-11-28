@@ -10,14 +10,18 @@ class HyperColomn:
         self.cent_x = centers[0]
         self.cent_y = centers[1]
         self.params = params
-        self.xx = np.copy(xx - self.cent_x)
-        self.yy = np.copy(yy - self.cent_y)
+        self.xx = np.copy(xx) #
+        self.yy = np.copy(yy) #
 
-        self.x = self.xx[0, :]
-        self.y = self.yy[:, 0]
+        self.x = np.copy(self.xx[0, :])
+        self.y = np.copy(self.yy[:, 0])
 
-        self.cent_x_idx = np.argmin( np.abs(self.x) )
-        self.cent_y_idx = np.argmin( np.abs(self.y) )
+
+
+        self.cent_x_idx = np.argmin( np.abs(self.x- self.cent_x) )
+        self.cent_y_idx = np.argmin( np.abs(self.y- self.cent_y) )
+
+
 
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
@@ -52,7 +56,7 @@ class HyperColomn:
 
 
     def aproximate_hilbert_kernel(self):
-        w0 = np.ones(self.sigmas.size, dtype=np.float)
+        w0 = np.ones(self.sigmas.size, dtype=np.float64)
         opt_res = minimize(self._hilbert_dgs_diff, x0=w0, args=(self.xx, self.yy, self.sigmas))
         self.dg_weiths = opt_res.x
         #### np.save(self.file_saving_ws, self.dg_weiths)
@@ -89,7 +93,7 @@ class HyperColomn:
                 self.mexican_hats[phi_idx].append(hat)
 
         sigma = np.max(self.sigmas) # !!!!
-        self.gaussian = np.exp(-self.yy**2 / (2 * sigma**2) - self.xx**2 / (2 * sigma**2))
+        self.gaussian = np.exp(-(self.yy - self.cent_y)**2 / (2 * sigma**2) - (self.xx - self.cent_x)**2 / (2 * sigma**2))
         self.gaussian /= np.sum(self.gaussian)
 
     def get_rickers(self, sigma, xx, yy):
@@ -98,7 +102,6 @@ class HyperColomn:
         ricker = (-1 + xx**2 / sigma_x**2) * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
 
         ricker = ricker / np.sqrt(np.sum(ricker**2)) # -ricker / np.sqrt(np.sum(ricker**2))
-        # ricker -= np.mean(ricker)
         return ricker
 
     def get_gaussian_derivative(self, sigma, xx, yy):
@@ -231,6 +234,8 @@ class HyperColomn:
                 }
                 Encoded[freq_idx] = encoded_dict
 
+                print(encoded_dict["abs"], peak_freq, self.cent_x, self.cent_y)
+
         mean_intensity = np.sum(self.gaussian * U)
         hc_data = {
             "mean_intensity": mean_intensity,
@@ -251,18 +256,29 @@ class HyperColomn:
     def decode(self, Encoded):
         U_restored = np.zeros_like(self.xx)
 
+        Abs_HC = np.zeros_like(self.xx)
+        Phases_HC = np.zeros_like(self.xx)
+        Mean_U_HC = np.zeros_like(self.xx)
+
+
         for freq_idx, freq_encoded in enumerate(Encoded):
             if freq_idx == len(Encoded)-1:
-                U_restored += freq_encoded["mean_intensity"]
+                Umean = freq_encoded["mean_intensity"]
             else:
                 A = freq_encoded["abs"]
                 peak_freq = freq_encoded["peak_freq"]
                 phi_0 = freq_encoded["phi_0"]
                 phi_idx = freq_encoded["direction_idx"]
-                U_restored += A * np.cos(peak_freq * self.rot_xx[phi_idx] * 2 * np.pi + phi_0)
 
-        U_restored = U_restored / (np.mean( self.xx**2) + np.mean( self.yy**2))
-        return U_restored
+                xhc_ = self.cent_x * np.cos( self.angles[phi_idx] ) - self.cent_y * np.sin( self.angles[phi_idx] )
+                U_restored += A * np.cos(peak_freq * (self.rot_xx[phi_idx]-xhc_) * 2 * np.pi + phi_0)
+                Phases_HC = peak_freq * (self.rot_xx[phi_idx] - xhc_) * 2 * np.pi + phi_0
+                Abs_HC += A
+        Mean_U_HC += Umean
+
+        U_restored += Umean
+
+        return U_restored, Abs_HC, Phases_HC, Mean_U_HC
 
 
 
@@ -271,17 +287,16 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     params = {
-        "use_circ_regression": True,
+        "use_circ_regression": False,
     }
 
     centers = [0, 0]
-    centers = [0, 0]
     # angles = [0.01*np.pi, 0.45*np.pi]#np.linspace(-np.pi, np.pi, 6, endpoint=False)
-    angles = np.linspace(-np.pi, np.pi, 32, endpoint=False)
+    angles = np.linspace(-np.pi, np.pi, 16, endpoint=False)
 
     # print(angles)
-    Len_y = 500
-    Len_x = 500
+    Len_y = 200
+    Len_x = 200
 
     nsigmas = 8
     sigminimum = 0.05
@@ -290,46 +305,41 @@ if __name__ == '__main__':
     xx, yy = np.meshgrid(np.linspace(-1.0, 1.0, Len_y), np.linspace(1.0, -1.0, Len_x))
 
     image = np.zeros_like(xx)
-    frequencies = np.asarray([6.0, ]) # np.asarray([1.5, 8.0, 16.0, 80])  # np.geomspace(1.5, 25, num=5) #
+    frequencies = np.asarray([12.0, ]) # np.asarray([1.5, 8.0, 16.0, 80])  # np.geomspace(1.5, 25, num=5) #
 
-    for idx in range(1):
-        f = 5.0 # np.random.rand() * 20 # 10 # frequencies[2] #
-        # print(f)
-        an = 0.5 * np.pi # np.random.choice(angles) # np.random.rand() * np.pi  # np.random.rand() * 2*np.pi - np.pi
-        # an = np.pi * 0.5 # np.pi  # np.random.choice(angles)
 
-        xx_ = xx * np.cos(an) - yy * np.sin(an)
-        image += 0.5*( np.cos(2 * np.pi * xx_ * f + 0.5*np.pi) + 1)
+    f = 15.0
+    an = 0.25*np.pi
+
+    xx_ = xx * np.cos(an) - yy * np.sin(an)
+    image = 0.5*( np.cos(2 * np.pi * xx_ * f + 0.5*np.pi) + 1) * np.exp( -0.5*((xx-0.5)/0.05)**2 - 0.5*((yy-0.5)/0.05)**2)
 
 
     hc = HyperColomn(centers, xx, yy, angles, sigmas, frequencies=frequencies, params=params)
 
     #main_direction = hc.find_dominant_direction(image)
 
-    print(an, f)
-    Encoded = hc.encode(image)
-    image_restored = hc.decode(Encoded)
+    # print(an, f)
+    # Encoded = hc.encode(image)
+    # image_restored = hc.decode(Encoded)
+    # hc.hilbert_aproxed
 
-    # fig, axes = plt.subplots(nrows=len(hc.angles), ncols=len(hc.frequencies))
-    # for an_idx, (hats, an) in enumerate(zip(hc.mexican_hats, hc.angles)):
-    #     for freq_idx, (hat, fr) in enumerate(zip(hats, hc.frequencies)):
-    #
-    #         pr = image * hat
-    #         axes[an_idx, freq_idx].pcolormesh(hc.x, hc.y, pr, cmap="rainbow", shading="auto")
-    #
-    #         resp = np.sum(pr)
-    #         axes[an_idx, freq_idx].axis('off')
-    #
-    #         axes[an_idx, freq_idx].set_title( str(np.around(resp, 1)) )
+    for hilbert_aproxed in hc.hilbert_aproxed:
+        image_im = convolve2d(image, hilbert_aproxed, mode='same')
+        fig, axes = plt.subplots(ncols=3, figsize=(20, 5), sharex=True, sharey=True)
+        # plt.pcolormesh(hc.x, hc.y, hc.H_aproxed_normed, cmap="rainbow", shading="auto")
+        axes[0].pcolormesh(hc.x, hc.y, image, cmap="gray", shading="auto")
+        axes[1].pcolormesh(hc.x, hc.y, hc.H_aproxed_normed, cmap="gray", shading="auto")
 
-    # for h_apriximated in hc.hilbert_aproxed:
-    #     plt.figure()
-    #     plt.pcolormesh(hc.x, hc.y, h_apriximated, cmap="rainbow", shading="auto")
-    #     plt.show()
+        axes[2].pcolormesh(hc.x, hc.y, image_im, cmap="gray", shading="auto")
 
-    plt.figure()
-    plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
-    plt.figure()
-    plt.pcolormesh(hc.x, hc.y, image_restored, cmap="rainbow", shading="auto")
 
-    plt.show()
+        # plt.plot(hc.x, hc.H_aproxed_normed[100, :])
+
+
+        # plt.figure()
+        # plt.pcolormesh(hc.x, hc.y, image, cmap="rainbow", shading="auto")
+        # plt.figure()
+        # plt.pcolormesh(hc.x, hc.y, image_restored, cmap="rainbow", shading="auto")
+
+        plt.show()
