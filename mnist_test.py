@@ -23,7 +23,7 @@ Len_y, Len_x = image.shape
 xx, yy = np.meshgrid(np.linspace(-0.5, 0.5, Len_x), np.linspace(0.5, -0.5, Len_y))
 
 hcparams = {
-    "use_circ_regression": True,
+    "use_circ_regression": False,
 }
 
 radiuses = np.asarray([0.05, 0.1, 0.2, 0.4]) ## np.geomspace(0.1, 0.5, 10) # np.geomspace(0.1, 0.8, 30) #np.asarray([0.01, 0.05, 0.1]) #

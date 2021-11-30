@@ -18,8 +18,8 @@ class HyperColomn:
 
 
 
-        self.cent_x_idx = np.argmin( np.abs(self.x- self.cent_x) )
-        self.cent_y_idx = np.argmin( np.abs(self.y- self.cent_y) )
+        self.cent_x_idx = np.argmin( np.abs(self.x - self.cent_x) )
+        self.cent_y_idx = np.argmin( np.abs(self.y - self.cent_y) )
 
 
 
@@ -159,7 +159,7 @@ class HyperColomn:
 
     def find_peak_freq(self, phases_train, x_train, freq, y_train):
         # res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
-        np.savez("./results/saved.npz", phases_train, x_train)
+        # np.savez("./results/saved.npz", phases_train, x_train, y_train)
 
         if self.params["use_circ_regression"]:
             slopes = np.linspace(0.5*freq, 1.5*freq, 200)
@@ -176,10 +176,12 @@ class HyperColomn:
             idx2 = np.argmin( np.abs(x_train + 2*self.dx) + np.abs(y_train) )
             dist_x = np.abs(x_train[idx2] - x_train[idx1])
 
+            print(idx1, idx2, self.dx)
+
             phase_diff = phases_train[idx2] - phases_train[idx1]
-            phase_diff = phase_diff % (2*np.pi)
-            if phase_diff < 0:
-                phase_diff += 2*np.pi
+            # phase_diff = phase_diff % (2*np.pi)
+            # if phase_diff < 0:
+            #     phase_diff += 2*np.pi
             slope = phase_diff / ( 2*np.pi * dist_x )
 
         return slope
@@ -208,7 +210,7 @@ class HyperColomn:
             dx = self.dx*np.cos(self.angles[phi_idx])
             dy = self.dx*np.sin(self.angles[phi_idx])
 
-            dx_dist = np.sqrt( dx**2 + dy**2 )
+            #dx_dist = np.sqrt( dx**2 + dy**2 )
 
             for freq_idx, freq in enumerate(self.frequencies):
 
@@ -217,11 +219,13 @@ class HyperColomn:
 
                 phase_0 = np.angle(Ucoded_normal[self.cent_y_idx, self.cent_x_idx])
 
-                selected_vals = (np.abs(self.rot_xx[phi_idx]) < 15*dx_dist)&(np.abs(self.rot_yy[phi_idx]) < 15*dx_dist)
+                selected_vals = np.s_[self.cent_y_idx-5:self.cent_y_idx+5, self.cent_x_idx-5:self.cent_x_idx+5]
+                # (np.abs(self.xx-self.cent_x)<15*dx_dist)&(np.abs(self.yy-self.cent_y)<15*dx_dist)
 
                 phases_train = np.angle(Ucoded_normal[selected_vals]).ravel()
-                x_train = self.rot_xx[phi_idx][selected_vals].ravel()
-                y_train = self.rot_yy[phi_idx][selected_vals].ravel()
+                x_train = self.rot_xx[phi_idx][selected_vals].ravel() - self.cent_x*np.cos(self.angles[phi_idx])
+                y_train = self.rot_yy[phi_idx][selected_vals].ravel() - self.cent_y*np.sin(self.angles[phi_idx])
+
                 peak_freq = self.find_peak_freq(phases_train, x_train, freq, y_train)
 
                 encoded_dict = {

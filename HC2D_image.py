@@ -14,7 +14,7 @@ def get_gratings(freq, sigma=0.1, cent_x=0.2, cent_y=0.2, Len_x=200, Len_y=200, 
     return image
 
 
-image = data.camera().astype(np.float64) / 255
+# image = data.camera().astype(np.float64) / 255
 # print(image.shape)
 # image = rescale(image, 0.4, anti_aliasing=False)
 # print(image.shape)
@@ -22,7 +22,7 @@ image = data.camera().astype(np.float64) / 255
 # plt.show()
 
 
-# image = get_gratings(15, sigma=0.2, cent_x=0.2, cent_y=0.2)
+image = get_gratings(15, sigma=0.2, cent_x=0.2, cent_y=0.2)
 # image += np.random.rand( *image.shape ) * 0.01
 
 Len_y, Len_x = image.shape
