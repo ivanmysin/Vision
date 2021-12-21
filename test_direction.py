@@ -30,9 +30,9 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     image = 0.5 * (np.cos(2 * np.pi * signal_freq * yy + phi_0) + 1)
 
     ### рисуем сигнал
-    fig_sig, axes_sig = plt.subplots(ncols=2, figsize=(10, 5))
-    axes_sig[0].pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
-    axes_sig[0].set_title("Исходный сигнал")
+    # fig_sig, axes_sig = plt.subplots(ncols=2, figsize=(10, 5))
+    # axes_sig[0].pcolormesh(xx[0, :], yy[:, 0], image, cmap="rainbow", shading="auto")
+    # axes_sig[0].set_title("Исходный сигнал")
     ####################################################################
     ### Вычисляем рецептивные поля под разными углами
     angles = np.linspace(-np.pi, np.pi, 32, endpoint=False) # 8 равномерно распределенных направлений
@@ -42,7 +42,7 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     sigma_x = 0.005 # 0.05 # 1 / (np.sqrt(2) * np.pi * signal_freq)
     sigma_y = 0.5 * sigma_x
 
-    fig, axes = plt.subplots(ncols=8, nrows=2, figsize=(24, 6))
+    # fig, axes = plt.subplots(ncols=8, nrows=2, figsize=(24, 6))
 
     responses = np.zeros_like(angles) # ответы по углам
 
@@ -74,47 +74,62 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     # axes_sig[1].set_ylabel("Ответ")
     # axes_sig[1].set_xlabel("Направление, градусы")
 
-    if not show_figures: # не показываем рисунки, если так задано в аргументах
-        plt.close(fig=fig_sig)
-        plt.close(fig=fig)
+    # if not show_figures: # не показываем рисунки, если так задано в аргументах
+    #     plt.close(fig=fig_sig)
+    #     plt.close(fig=fig)
 
     direction_max_resp = angles[np.argmax(np.abs(responses))]  # возвращаем направление с максимальным ответом
-    vectors_responses = responses * np.exp(1j*angles)
+    vectors_responses = np.abs(responses) * np.exp(1j * angles)
     near_angles_idxs = np.argsort( np.cos(direction_max_resp - angles) )
 
     direction_max_resp = np.angle( np.sum(vectors_responses[near_angles_idxs[:angles.size//2]]) ) # возвращаем направление после векторного усреднения ответов
+
+    print(responses)
+    responses = np.abs(responses)
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    ax.scatter(angles, responses, color='blue', label='Модули ответов')
+    ax.plot([0.5 * np.pi, 0.5 * np.pi], [0, 0.001], color='red', label='Истинное направление')
+
+
+    ax.plot([direction_max_resp, direction_max_resp], [0, 0.001], color='green', label='Среднее направление')
+
+    ax.scatter(angles[near_angles_idxs[:angles.size // 2]], 0.001 * np.ones(angles.size // 2),
+               color='orange', label='Усредняемые направления')
+    fig.legend() # bbox_to_anchor=(0.5, 0)
+    plt.show()
+
 
 
     return direction_max_resp
 
 if __name__ == "__main__":
-    signal_freqs = np.linspace(0.1, 80, 40) # вектор частот  # np.asarray([1.0, ])
-    phi_0s = np.linspace(-np.pi, np.pi, 20, endpoint=False)  # вектор начальных фаз
+    signal_freqs = np.asarray([1.0, ]) # np.linspace(0.1, 80, 80) # вектор частот
+    phi_0s = np.asarray([0.5*np.pi, ])  # np.linspace(-np.pi, np.pi, 40, endpoint=False)  # вектор начальных фаз
 
-    max_direction_response = np.zeros( [signal_freqs.size, phi_0s.size] , dtype=np.float )
+    max_direction_response = np.zeros( [signal_freqs.size, phi_0s.size] , dtype=np.float64 )
     for freq_idx, signal_freq in enumerate(signal_freqs):
         for phi_idx, phi_0 in enumerate(phi_0s):
             max_direction_response[freq_idx, phi_idx] = get_direction(signal_freq=signal_freq, phi_0=phi_0, show_figures=False)
 
-    max_direction_response[max_direction_response < 0] += np.pi
-    max_direction_response_deg = np.rad2deg(max_direction_response)
-    fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
-    # axes.plot(phi_0s, max_direction_response.ravel())
-    gr = axes[0].pcolormesh(phi_0s, signal_freqs, max_direction_response_deg, cmap="rainbow", shading="auto")
-    axes[0].set_title("Максимальное направление")
-    axes[0].set_xlabel("Начальная фаза")
-    axes[0].set_ylabel("Частота сигнала")
-    plt.colorbar(gr, ax=axes[0])
-
-
-
-    dev = np.abs(np.cos(max_direction_response - 0.5*np.pi)) #,  0.5*(np.cos( max_direction_response + 0.5*np.pi) + 1))
-    gr2 = axes[1].pcolormesh(phi_0s, signal_freqs, dev, cmap="rainbow", shading="auto")
-    axes[1].set_title("Точность определения направления")
-    axes[1].set_xlabel("Начальная фаза")
-    axes[1].set_ylabel("Частота сигнала")
-    plt.colorbar(gr2, ax=axes[1])
-
-
-    fig.savefig("./results/direction_selectivity_1D_hat.png")
-    plt.show()
+    # max_direction_response[max_direction_response < 0] += np.pi
+    # max_direction_response_deg = np.rad2deg(max_direction_response)
+    # fig, axes = plt.subplots(ncols=2, figsize=(10, 5))
+    # # axes.plot(phi_0s, max_direction_response.ravel())
+    # gr = axes[0].pcolormesh(phi_0s, signal_freqs, max_direction_response_deg, cmap="rainbow", shading="auto")
+    # axes[0].set_title("Максимальное направление")
+    # axes[0].set_xlabel("Начальная фаза")
+    # axes[0].set_ylabel("Частота сигнала")
+    # plt.colorbar(gr, ax=axes[0])
+    #
+    #
+    #
+    # dev = np.abs(np.cos(max_direction_response - 0.5*np.pi)) #,  0.5*(np.cos( max_direction_response + 0.5*np.pi) + 1))
+    # gr2 = axes[1].pcolormesh(phi_0s, signal_freqs, dev, cmap="rainbow", shading="auto")
+    # axes[1].set_title("Точность определения направления")
+    # axes[1].set_xlabel("Начальная фаза")
+    # axes[1].set_ylabel("Частота сигнала")
+    # plt.colorbar(gr2, ax=axes[1])
+    #
+    #
+    # fig.savefig("./results/direction_selectivity_1D_hat.png")
+    # plt.show()
