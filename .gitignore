@@ -1,4 +1,6 @@
-git status 
-
-
-/results/*
+.directory
+/.idea/*
+/venv/*
+/__pycache__/*
+*.pyc
+/results/
