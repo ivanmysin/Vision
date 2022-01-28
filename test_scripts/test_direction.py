@@ -64,8 +64,8 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
         # dgaus = dgaus / np.sqrt(np.sum(dgaus ** 2))  # Нормируем ядро
 
         # Вычисляем ответ при совпадении центра рецептивного поля нейрона и гиперколонки
-        response = np.max( convolve2d(image, hat, mode='valid') )#np.sum(image * hat) #+ np.abs(np.sum(image * dgaus)) #  #
-        responses[an_idx] =  response #np.abs()
+        # response = np.max( convolve2d(image, hat, mode='valid') )#np.sum(image * hat) #+ np.abs(np.sum(image * dgaus)) #  #
+        responses[an_idx] = np.abs( np.sum(image * hat) )  # response
         # Или вычисляем всю свертку
         # response_full = convolve2d(image, hat, mode='same')
         # axes[0, an_idx].pcolormesh(xx[0, :], yy[:, 0], hat, cmap="rainbow", shading="auto")
@@ -90,12 +90,13 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     #     plt.close(fig=fig_sig)
     #     plt.close(fig=fig)
 
-    direction_max_resp = angles[np.argmax(responses)]  # возвращаем направление с максимальным ответом
-    vectors_responses = responses * np.exp(1j * angles)
-    near_angles_idxs = np.argsort( np.cos(direction_max_resp - angles) )
-    summed_angles_idxs = near_angles_idxs[:angles.size//2]
-
-    direction_max_resp = np.angle( np.sum(vectors_responses[summed_angles_idxs]) ) # возвращаем направление после векторного усреднения ответов
+    direction_max_resp =  angles[np.argmin(responses)]
+    # direction_max_resp = angles[np.argmax(responses)]  # возвращаем направление с максимальным ответом
+    # vectors_responses = responses * np.exp(1j * angles)
+    # near_angles_idxs = np.argsort( np.cos(direction_max_resp - angles) )
+    # summed_angles_idxs = near_angles_idxs[:angles.size//2]
+    #
+    # direction_max_resp = np.angle( np.sum(vectors_responses[summed_angles_idxs]) ) # возвращаем направление после векторного усреднения ответов
     # if direction_max_resp < 0:
     #     direction_max_resp += np.pi
     # print(responses)
