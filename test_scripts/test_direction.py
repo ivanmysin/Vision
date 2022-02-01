@@ -90,12 +90,12 @@ def get_direction(signal_freq=5, phi_0=0, show_figures=True):
     #     plt.close(fig=fig_sig)
     #     plt.close(fig=fig)
 
-    direction_max_resp =  angles[np.argmin(responses)]
+    direction_max_resp = angles[np.argmin(responses)]
     # direction_max_resp = angles[np.argmax(responses)]  # возвращаем направление с максимальным ответом
     # vectors_responses = responses * np.exp(1j * angles)
     # near_angles_idxs = np.argsort( np.cos(direction_max_resp - angles) )
     # summed_angles_idxs = near_angles_idxs[:angles.size//2]
-    #
+
     # direction_max_resp = np.angle( np.sum(vectors_responses[summed_angles_idxs]) ) # возвращаем направление после векторного усреднения ответов
     # if direction_max_resp < 0:
     #     direction_max_resp += np.pi
@@ -146,5 +146,5 @@ if __name__ == "__main__":
     plt.colorbar(gr2, ax=axes[1])
 
 
-    fig.savefig("../results/detect_direction_2.png")
+    fig.savefig("../results/detect_direction.png")
     plt.show()
