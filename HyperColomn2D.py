@@ -193,8 +193,9 @@ class HyperColumn:
 
         sigma = 0.1  # np.max(self.sigmas)  # !!!!
         self.gaussian = np.exp(
-            -(self.yy - self.cent_y) ** 2 / (2 * sigma ** 2) - (self.xx - self.cent_x) ** 2 / (2 * sigma ** 2))
+            -(self.yy - self.cent_y)**2 / (2* sigma**2) - (self.xx - self.cent_x)**2 / (2 * sigma**2))
         self.gaussian /= np.sum(self.gaussian)
+
         self.d_gauss_dx = -(self.xx - self.cent_x) / (sigma ** 2) * self.gaussian
         # self.d_gauss_dx /= np.sum(self.d_gauss_dx)
         self.d_gauss_dy = -(self.yy - self.cent_y) / (sigma ** 2) * self.gaussian
