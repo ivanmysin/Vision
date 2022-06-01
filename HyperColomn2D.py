@@ -176,22 +176,22 @@ class HyperColumn:
             yy = self.rot_yy[phi_idx] - self.rot_yc[phi_idx]
             freq = self.frequencies[len(self.frequencies) - 1]
             sigma_y = 0.5 / (np.sqrt(2) * np.pi * freq)
-            sigma_x = 0.2 * sigma_y
+            sigma_x = 0.5 * sigma_y
             # hat_y = (-2/sigma_y**2 + 4*yy**2/sigma_y**4)  * np.exp(-xx**2/(2*sigma_x**2) - yy**2/(2*sigma_y**2)) / (2*np.pi*sigma_x*sigma_y)
             # hat_y = hat_y - np.sum(hat_y)/self.Nx/self.Ny
 
             hat_y = kernel_func(xx, yy, sigma_x, sigma_y)  # Вычисляем ядро
-            hat_y = hat_y / np.sqrt(np.sum(hat_y ** 2))  # Нормируем ядро
+            hat_y = hat_y / np.sqrt(np.sum(hat_y**2))  # Нормируем ядро
 
-            dGauss_x = dGauss_x_func(xx, yy, sigma_y, sigma_y)
-            dGauss_x = dGauss_x / np.sqrt(np.sum(dGauss_x ** 2))
+            dGauss_x = dGauss_x_func(xx, yy, sigma_x, sigma_y)
+            dGauss_x = dGauss_x / np.sqrt(np.sum(dGauss_x**2))
 
             #################################
             self.mexican_hats_y.append(hat_y)
             self.dGauss_x.append(dGauss_x)
             #################################
 
-        sigma = 0.1  # np.max(self.sigmas)  # !!!!
+        sigma = self.sgmGauss # 0.1  # np.max(self.sigmas)  # !!!!
         self.gaussian = np.exp(
             -(self.yy - self.cent_y)**2 / (2* sigma**2) - (self.xx - self.cent_x)**2 / (2 * sigma**2))
         self.gaussian /= np.sum(self.gaussian)
@@ -210,7 +210,7 @@ class HyperColumn:
         for an_idx in range(len(self.angles) // 2):
             a = self.dGauss_x[an_idx]
             b = self.mexican_hats_y[an_idx]
-            kernel = a - b
+            #kernel = a - b
             responses[an_idx] = np.abs(np.sum(a * U)) - np.abs(np.sum(b * U))
 
             # fig, axes = plt.subplots(ncols=2, figsize=(30, 15), sharex=True, sharey=True)
@@ -298,16 +298,17 @@ class HyperColumn:
 
         ## 3 ## Analytical signal
 
-        H = 1 / (np.pi * self.xx) * self.dx
-        u_imag1d = convolve1d(UnoGrad[:, self.cent_y_idx], H[:, self.cent_y_idx], axis=0)
-        Gauss = np.exp(- self.yy ** 2 / (2 * self.sgmGauss ** 2)) / np.sqrt(2 * np.pi) / self.sgmGauss
-        H *= Gauss * self.dy
+        # H = 1 / (np.pi * self.xx) * self.dx
+        # u_imag1d = convolve1d(UnoGrad[:, self.cent_y_idx], H[:, self.cent_y_idx], axis=0)
+        # Gauss = np.exp(- self.yy ** 2 / (2 * self.sgmGauss ** 2)) / np.sqrt(2 * np.pi) / self.sgmGauss
+        # H *= Gauss * self.dy
 
-        u_H = convolve2d(UnoGrad, H, mode="same")
-        u_imag = convolve2d(UnoGrad, self.H_approxed, mode="same")
+        # u_H = convolve2d(UnoGrad, H, mode="same")
+        # u_imag = convolve2d(UnoGrad, self.H_approxed, mode="same")
         u_H_phi = convolve2d(UnoGrad, self.H_approxed_phi[phi_idx], mode="same")
 
-        H_UnoGrad = np.imag(hilbert(UnoGrad, axis=0))
+        # H_UnoGrad = np.imag(hilbert(UnoGrad, axis=0))
+
         # uu = hilbert(U-mean_intensity, axis=0)
         # H = H / np.sqrt( np.sum(H**2) )
 

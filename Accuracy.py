@@ -116,15 +116,10 @@ directions = np.linspace(-np.pi, np.pi, 32, endpoint=False)  # 28
 ##### Prepare geometry of HCs #################################################
 idx = 0
 for r in radiuses:
-    nsigmas = 4
-    sigminimum = sigma_teor_min + 0.01 * r  # + 0.2*r
-    sigmaximum = 100 * sigminimum  # ??????? ?? r
-
-    sigmas = np.geomspace(sigminimum, sigmaximum, nsigmas)  # 28
 
     freq_max = freq_teor_max * 0.8 * (1 - r)  # 28
     freq_min = 0.05 * freq_max  # 28
-    frequencies = np.asarray([2.0, ]) #np.asarray([5.0, ])  # np.geomspace(freq_min, freq_max, 5) #28
+    frequencies = np.asarray([20.0, ]) #np.asarray([5.0, ])  # np.geomspace(freq_min, freq_max, 5) #28
 
     for ia in range(len(angles)):
         an = angles[ia]
@@ -132,7 +127,7 @@ for r in radiuses:
         yc = r * np.sin(an)
         hc_centers_x[idx] = xc
         hc_centers_y[idx] = yc
-        hc_sigma_rep_field[idx] = sigmaximum / 10
+        # hc_sigma_rep_field[idx] = sigmas[0] # sigmaximum / 10
 
         idx += 1
 N_of_HC = idx
@@ -144,6 +139,16 @@ for idx in range(NGHs):
     xc = hc_centers_x[idx]
     yc = hc_centers_y[idx]
 
+    r = np.sqrt(xc**2 + yc**2)
+    nsigmas = 8
+    sigminimum = sigma_teor_min + 0.01 * r  # + 0.2*r
+    sigmaximum = 100 * sigminimum  # ??????? ?? r
+
+    sigmas = np.geomspace(sigminimum, sigmaximum, nsigmas)  # 28
+    sgmGauss = sigmas[0]
+    hc_sigma_rep_field[idx] = 5*sgmGauss
+
+
     ##### Features ########################################################
     # freq_c[idx] = Freq + np.random.randn() * errs["freq_error"]
     # dir_c[idx] = Direction + np.random.randn() * errs["dir_error"]
@@ -153,7 +158,7 @@ for idx in range(NGHs):
     # bgrd_c[idx] = Background(xc, yc)
     # grdX_c[idx] = (Background(xc, yc) - Background(xc - 0.01, yc)) / 0.01
     # grdY_c[idx] = (Background(xc, yc) - Background(xc, yc - 0.01)) / 0.01
-    sgmGauss = sigmas[0]
+
 
     if True: #idx in isc:
         hc = HyperColumn(xc, yc, xx, yy, directions, sigmas, sgmGauss, frequencies=frequencies, params=params)  # 28
@@ -196,8 +201,8 @@ for idx in range(NGHs):
 
     #### Define RFs for HCs ###############################################
     receptive_field = np.exp(
-        - 0.5 * ((yy - yc) / (0.5 * hc_sigma_rep_field[idx]))**2
-        - 0.5 * ((xx - xc) / (0.5 * hc_sigma_rep_field[idx]))**2)
+        - 0.5 * ((yy - yc) / (hc_sigma_rep_field[idx]))**2
+        - 0.5 * ((xx - xc) / (hc_sigma_rep_field[idx]))**2)
     # receptive_field = 1/((xx-xc)**2 + (yy-yc)**2)
     receptive_fields[:, :, idx] = receptive_field
 
@@ -226,7 +231,7 @@ for i in range(NGHs):
 
 image_restored_1 = np.sum( Bgrd_restored_by_HCs * receptive_fields, axis=2)
 image_restored_2 = np.sum( (Bgrd_restored_by_HCs + Grad_restored_by_HCs) * receptive_fields, axis=2)
-image_restored_3 = np.sum( (np.cos(Phi_restored_by_HCs) * 0.2*Ampl_restored_by_HCs + Bgrd_restored_by_HCs + Grad_restored_by_HCs) * receptive_fields, axis=2)
+image_restored_3 = np.sum( (0.2*Ampl_restored_by_HCs*np.cos(Phi_restored_by_HCs) + Bgrd_restored_by_HCs + Grad_restored_by_HCs) * receptive_fields, axis=2)
 
 image_restored_list = [image_restored_1, image_restored_2, image_restored_3]
 
