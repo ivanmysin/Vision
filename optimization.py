@@ -168,7 +168,6 @@ def encode_image(optimized_x, image_sqroot):
             #
             # print(idx, ": dir_c=", dir_c[idx], "; freq_c=", freq_c[idx], "; ph_c=", ph_c[idx], "; ampl_c=", ampl_c[idx],
             #       "; bgrd_c=", bgrd_c[idx], "; drdX_c=", grdX_c[idx])
-            print(idx)
 
     ##### Decoding ################################################################
     for idx in range(N_of_HC):
@@ -216,10 +215,7 @@ def encode_image(optimized_x, image_sqroot):
     image_restored = Transform_with_Sqr(image_restored)
     return image_restored, xx, yy
 
-def loss(optimized_x, image):
-    # sguare-root tranformation of image
-    image_sqroot = Transform_with_Root(image)
-    # image_sqrootback = Transform_with_Sqr(image_sqroot)
+def loss(optimized_x, image, image_sqroot):
     image_restored, xx, yy = encode_image(optimized_x, image_sqroot)
 
     ssim = structural_similarity(image, image_restored)
@@ -280,11 +276,12 @@ def otim_main():
     image[199, 199] = np.max(image)
     image[0, 199] = np.min(image)
 
+    image_sqroot = Transform_with_Root(image)
     bounds = [[0.000001, 1], [0.000001, 1]]
-    res = differential_evolution(loss, bounds, args=(image, ), maxiter=2, popsize=4, mutation=0.2, recombination=0.7)
+    res = differential_evolution(loss, bounds, args=(image, image_sqroot), maxiter=10, popsize=4, \
+                                 mutation=0.2, recombination=0.7, disp=True)
     print (res.x)
     sgmGauss, sgmRepField = res.x
-    image_sqroot = Transform_with_Root(image)
 
     image_restored, xx, yy = encode_image([sgmGauss, sgmRepField], image_sqroot)
 
