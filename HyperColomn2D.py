@@ -47,6 +47,10 @@ class HyperColumn:
         self.kotelnikov_limit = 0.5 / np.sqrt(self.dx ** 2 + self.dy ** 2)
         self.frequencies = self.frequencies[self.frequencies < self.kotelnikov_limit]
         self.params = params
+        try:
+            self.params["use_circ_regression"]
+        except KeyError:
+            self.params["use_circ_regression"] = False
 
         self.mexican_hats = []
         self.mexican_hats_y = []
@@ -58,12 +62,6 @@ class HyperColumn:
         self.compute_kernels()
 
         self.normalization_factor_H = 1
-
-    #    def derivate_gaussian_by_x(self, sigma, xx, yy):
-    #        sigma_x = sigma
-    #        sigma_y = 0.1 * sigma_x
-    #        gaussian_dx = -xx * np.exp(-yy**2 / (2 * sigma_y**2) - xx**2 / (2 * sigma_x**2)) / sigma_x**2
-    #        return gaussian_dx
 
     def derivate_gaussian_by_x(self, sigma, xx, yy):
         gaussian_dx = -xx * np.exp(-xx ** 2 / (2 * sigma ** 2)) / np.sqrt(2 * np.pi) / sigma ** 2
@@ -88,6 +86,10 @@ class HyperColumn:
         return E
 
     def approximate_hilbert_kernel(self):
+        if self.sigmas.size == 0:
+            self.dg_weigths = np.nan
+            self.H_approxed = np.nan
+            return
         w0 = np.ones(self.sigmas.size, dtype=np.float64)
         opt_res = minimize(self._hilbert_dgs_diff, x0=w0, args=(self.xx, self.yy, self.sigmas))
         self.dg_weigths = opt_res.x
@@ -101,10 +103,8 @@ class HyperColumn:
         Gauss = np.exp(-self.yy ** 2 / (2 * self.sgmGauss ** 2)) / np.sqrt(2 * np.pi) / self.sgmGauss
         H *= Gauss * self.dy
 
-        # plt.plot(self.x, H[:, self.y.size // 2], label="Hyperb", linewidth=3)
-        # plt.plot(self.x, self.H_approxed[:, self.y.size // 2], label="Approxed", linewidth=1)
-        # plt.legend()
-        # plt.show()
+
+
 
     def get_rickers(self, sigma, xx, yy):
         sigma_x = sigma
@@ -243,17 +243,16 @@ class HyperColumn:
     def find_peak_freq(self, phases_train, x_train, freq, y_train):
         # res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), method='Golden')
         # np.savez("./results/saved.npz", phases_train, x_train)
-
         if self.params["use_circ_regression"]:
             slopes = np.linspace(0.5 * freq, 1.5 * freq, 200)
             D = np.zeros_like(slopes)
             for idx, slope in enumerate(slopes):
                 D[idx] = self._get_Dist(slope, phases_train, x_train)
-            slope = slopes[np.argmin(D)]
+                slope = slopes[np.argmin(D)]
 
-            res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[slope - 2, slope + 2],
-                                  method='bounded')
-            slope = float(res.x)
+                res = minimize_scalar(self._get_Dist, args=(phases_train, x_train), bounds=[slope - 2, slope + 2],
+                                      method='bounded')
+                slope = float(res.x)
         else:
             idx1 = np.argmin(np.abs(x_train - 2 * self.dx) + np.abs(y_train))
             idx2 = np.argmin(np.abs(x_train + 2 * self.dx) + np.abs(y_train))
@@ -284,87 +283,30 @@ class HyperColumn:
         UnoGrad = U - mean_intensity - (self.xx - self.cent_x) * Grad_x - (self.yy - self.cent_y) * Grad_y
 
         ## 2 ## Find direction
+        if len(self.dir) != 0:
+            direction = self.find_dominant_direction(UnoGrad)
+            # for direc_idx, direction in enumerate(directions):
+            if direction < 0: direction += np.pi
+            phi_idx = np.argmax(np.cos(direction - self.angles))  # for self.H_approxed_phi[phi_idx]
+            phi = self.angles[phi_idx]
+        else:
+            phi = 0
 
-        direction = self.find_dominant_direction(UnoGrad)  # [1.57, ] #
-        # for direc_idx, direction in enumerate(directions):
-        if direction < 0: direction += np.pi
-        phi_idx = np.argmax(np.cos(direction - self.angles))  # for self.H_approxed_phi[phi_idx]
-        phi = self.angles[phi_idx]
+        if len(self.H_approxed_phi) > 0:
+            u_H_phi = convolve2d(UnoGrad, self.H_approxed_phi[phi_idx], mode="same")
+            uu = UnoGrad + 1j * u_H_phi  # u_imag
 
-        # fig, axes = plt.subplots(ncols=2, figsize=(30, 15), sharex=True, sharey=True)
-        # axes[0].pcolor(self.xx,self.yy, self.d_gauss_dx, cmap='gray', shading='auto')
-        # axes[1].pcolor(self.xx,self.yy, mean_intensity + (self.xx - self.cent_x) * Grad_x + (self.yy - self.cent_y) * Grad_y, cmap='gray', shading='auto')
-        # plt.show()
 
-        ## 3 ## Analytical signal
-
-        # H = 1 / (np.pi * self.xx) * self.dx
-        # u_imag1d = convolve1d(UnoGrad[:, self.cent_y_idx], H[:, self.cent_y_idx], axis=0)
-        # Gauss = np.exp(- self.yy ** 2 / (2 * self.sgmGauss ** 2)) / np.sqrt(2 * np.pi) / self.sgmGauss
-        # H *= Gauss * self.dy
-
-        # u_H = convolve2d(UnoGrad, H, mode="same")
-        # u_imag = convolve2d(UnoGrad, self.H_approxed, mode="same")
-        u_H_phi = convolve2d(UnoGrad, self.H_approxed_phi[phi_idx], mode="same")
-
-        # H_UnoGrad = np.imag(hilbert(UnoGrad, axis=0))
-
-        # uu = hilbert(U-mean_intensity, axis=0)
-        # H = H / np.sqrt( np.sum(H**2) )
-
-        ###########################
-        uu = UnoGrad + 1j * u_H_phi  # u_imag
-        ###########################
-
-        """
-        fig, (ax0, ax1, ax2) = plt.subplots(nrows=3)
-        ax1.plot(self.xx[:, self.cent_y_idx], H[:, self.cent_y_idx], label="H", linewidth=3)
-        ax1.plot(self.xx[:, self.cent_y_idx], self.H_approxed[:, self.cent_y_idx], label="H_approxed", linewidth=1)
-        ax1.plot(self.rot_xx[phi_idx][:, self.cent_y_idx], self.H_approxed_phi[phi_idx][:, self.cent_y_idx], label="H_approxed_phi", linewidth=1)
-        ax1.legend()
-        ax0.plot(self.xx[:, self.cent_y_idx],         UnoGrad[:, self.cent_y_idx], label='UnoGrad')
-        ax0.plot(self.xx[:, self.cent_y_idx],       H_UnoGrad[:, self.cent_y_idx], label='Hilbert(UnoGrad)')
-        ax0.plot(self.xx[:, self.cent_y_idx],        u_imag1d,                  label='convolve1d')
-        ax0.plot(self.xx[:, self.cent_y_idx],             u_H[:, self.cent_y_idx], label='2d with H')
-        ax0.plot(self.xx[:, self.cent_y_idx],          u_imag[:, self.cent_y_idx], label='2d with H_approxed')
-        ax0.plot(self.xx[:, self.cent_y_idx],         u_H_phi[:, self.cent_y_idx], label='2d with H_approxed_phi')
-        ax0.legend()
-        """
 
         dxy_dist = np.sqrt(self.dx ** 2 + self.dy ** 2)
-        # rot_x1 = self.rot_xx[phi_idx][self.cent_x_idx+2, self.cent_y_idx+2]
-        # rot_y1 = self.rot_yy[phi_idx][self.cent_x_idx+2, self.cent_y_idx+2]
 
         for i_freq, freq in enumerate(self.frequencies):
-            # Ucoded = convolve2d(uu, self.mexican_hats[phi_idx][i_freq], mode="same")
-            # Ucoded_normal = Ucoded.real / np.sqrt(np.sum(Ucoded.real ** 2)) + 1j * Ucoded.imag / np.sqrt(
-            #        np.sum(Ucoded.imag ** 2))
-
-            ## 4 ## Find phase
-
-            # phase_0 = np.angle(Ucoded_normal[self.cent_x_idx, self.cent_y_idx])
             phase_0 = np.angle(uu[self.cent_x_idx, self.cent_y_idx])
-            ###phase_1 = np.angle(uu[self.cent_x_idx+2, self.cent_y_idx+2])
-            ###phase_diff = phase_1 - phase_0
-            ###phase_diff = phase_diff % (2 * np.pi)
-            ###if phase_diff < 0:
-            ###    phase_diff += 2 * np.pi
-            ###peak_freq = phase_diff/(2*np.pi*np.abs(rot_x1-rot_xc))
 
-            ## 5 ## Find frequency
-
-            # selected_vals = (np.abs(self.rot_xx[phi_idx]-self.rot_xc[phi_idx]) < 8 * dxy_dist) & (  #!!!
-            #                 np.abs(self.rot_yy[phi_idx]-self.rot_yc[phi_idx]) < 1 * dxy_dist)      #!!!
             selected_vals = (np.abs(
                 self.x_rot_of_xy(self.xx - self.cent_x, self.yy - self.cent_y, phi)) < 5 * dxy_dist) & (
                                     np.abs(self.y_rot_of_xy(self.xx - self.cent_x, self.yy - self.cent_y,
                                                             phi)) < 0.7 * dxy_dist)
-            """                         
-            fig, axes = plt.subplots(ncols=2, figsize=(30, 15), sharex=True, sharey=True)
-            axes[0].pcolor(self.xx,self.yy, np.real(uu), cmap='gray', shading='auto')
-            axes[0].scatter(self.xx[selected_vals],self.yy[selected_vals], s=150, color="green")
-            plt.show()
-            """
 
             # phases_train = np.angle(Ucoded_normal[selected_vals]).ravel()
             x_train = self.rot_xx[phi_idx][selected_vals].ravel()
@@ -388,19 +330,6 @@ class HyperColumn:
                     peak_freq = peak_freq * (ii - 1) / ii + (p2 - p1) / (x2 - x1) / (2 * np.pi) / ii
                     ampl = ampl * (ii - 1) / ii + ampl_train[i] / ii
 
-            # phase_0_aproxed = self._get_phi_0(peak_freq, phases_train, x_train)
-            # print(phase_0, phase_0_aproxed, np.cos(phase_0 - phase_0_aproxed)  )
-
-            """
-            ax2.plot(self.xx[:, self.cent_y_idx],     np.angle(uu[:, self.cent_y_idx]), label='phase')
-            ax2.plot(x_train,     phases_train, label='phases_train')
-            ax2.legend()
-            plt.show()
-            """
-
-            ## 6 ## Find amplitude
-
-            # ampl = np.abs(uu[self.cent_x_idx, self.cent_y_idx])
 
             encoded_dict = {
                 "peak_freq": peak_freq,
