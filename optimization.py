@@ -73,6 +73,8 @@ def Transform_Y_with_Sqr(x1, y1):
 def encode_image(optimized_x, image_sqroot):
     sgmGauss = optimized_x[0]
     sgmRepField = optimized_x[1]
+    WfreqComponent = optimized_x[2]
+    CentFreqRicker = optimized_x[3]
 
     Ny, Nx  = image_sqroot.shape
     # sgmGauss = 0.1
@@ -90,14 +92,25 @@ def encode_image(optimized_x, image_sqroot):
 
     hc_centers_x = np.zeros(NGHs, dtype=np.float64)
     hc_centers_y = np.zeros(NGHs, dtype=np.float64)
-    # xxx_ = np.zeros(NGHs, dtype=np.float64)
-    # yyy_ = np.zeros(NGHs, dtype=np.float64)
+
     hc_sigma_rep_field = np.zeros(NGHs, dtype=np.float64)
-    # image_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+
     receptive_fields = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
     bgrd_c = np.zeros(NGHs, dtype=np.float64)
+    grdX_c = np.zeros(NGHs, dtype=np.float64)
+    grdY_c = np.zeros(NGHs, dtype=np.float64)
+    freq_c = np.zeros(NGHs, dtype=np.float64)
+    dir_c = np.zeros(NGHs, dtype=np.float64)
+    ph_c = np.zeros(NGHs, dtype=np.float64)
+    ampl_c = np.zeros(NGHs, dtype=np.float64)
 
     Bgrd_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+    Grad_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+
+    # Freq_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+    # Dir_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+    Phi_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
+    Ampl_restored_by_HCs = np.zeros((Nx, Ny, NGHs), dtype=np.float64)
     # # freq_teor_max = 0.5 / (np.sqrt(delta_x ** 2 + delta_y ** 2))
     # # sigma_teor_min = 1 / (2 * np.pi * freq_teor_max)
     # directions = np.linspace(-np.pi, np.pi, 32, endpoint=False)  # 28
@@ -128,9 +141,9 @@ def encode_image(optimized_x, image_sqroot):
             idx += 1
 
     ### Square mech ###
-    sigmas = np.empty(0) #  np.geomspace(0.01, 0.2, 4)  # 28
-    frequencies = np.empty(0) #  np.geomspace(0.1, 10, 5)  # 28
-    directions = np.empty(0) #
+    sigmas = np.geomspace(0.01, 0.2, 4)  # 28
+    frequencies = np.asarray([CentFreqRicker, ]) #  np.empty(0) #  np.geomspace(0.1, 10, 5)  # 28
+    directions = np.linspace(-np.pi, np.pi, 32, endpoint=False) # np.empty(0) #
 
 
     idx = 0
@@ -157,15 +170,17 @@ def encode_image(optimized_x, image_sqroot):
             Encoded = hc.encode(image_sqroot)
             ######################################
 
-            # freq_c[idx] = Encoded[0]['peak_freq']  # Freq                  + np.random.randn() * errs["freq_error"]
-            # dir_c[idx] = Encoded[0]['dominant_direction']  # Direction             + np.random.randn() * errs["dir_error"]
-            # xhc_ = xc * np.cos(dir_c[idx]) - yc * np.sin(dir_c[idx])
-            # ph_c[idx] = Encoded[0]['phase_0']  # 2*np.pi * Freq * xhc_  + np.random.randn() * errs["ph_0_error"]
-            # ampl_c[idx] = Encoded[0]['abs']  # AmplitudesOfGratings(xc, yc, Sgm, cent_x=0.1, cent_y=0.1)
+
             bgrd_c[idx] = Encoded[-1]['mean_intensity']  # Background(xc, yc)
-            # grdX_c[idx] = Encoded[-1]['Grad_x']
-            # grdY_c[idx] = Encoded[-1]['Grad_y']
-            #
+            grdX_c[idx] = Encoded[-1]['Grad_x']
+            grdY_c[idx] = Encoded[-1]['Grad_y']
+
+            freq_c[idx] = Encoded[0]['peak_freq']  # Freq
+            dir_c[idx] = Encoded[0]['dominant_direction']  # Direction
+            ph_c[idx] = Encoded[0]['phase_0']
+            ampl_c[idx] = Encoded[0]['abs']
+
+
             # print(idx, ": dir_c=", dir_c[idx], "; freq_c=", freq_c[idx], "; ph_c=", ph_c[idx], "; ampl_c=", ampl_c[idx],
             #       "; bgrd_c=", bgrd_c[idx], "; drdX_c=", grdX_c[idx])
 
@@ -178,14 +193,15 @@ def encode_image(optimized_x, image_sqroot):
         ###Freq_restored_by_HCs[:, :, idx]  = freq_c[idx]
         ###Dir_restored_by_HCs[:, :, idx]   = direction_c[idx]
 
-        # xx_ = xx * np.cos(dir_c[idx]) - yy * np.sin(dir_c[idx])
-        # xhc_ = xc * np.cos(dir_c[idx]) - yc * np.sin(dir_c[idx])
+        xx_ = xx * np.cos(dir_c[idx]) - yy * np.sin(dir_c[idx])
+        xhc_ = xc * np.cos(dir_c[idx]) - yc * np.sin(dir_c[idx])
 
         #### Each HC restores features across entire image
-        # Phi_restored_by_HCs[:, :, idx] = (ph_c[idx] + 2 * np.pi * (xx_ - xhc_) * freq_c[idx])
-        # Ampl_restored_by_HCs[:, :, idx] = ampl_c[idx]
+        Phi_restored_by_HCs[:, :, idx] = (ph_c[idx] + 2 * np.pi * (xx_ - xhc_) * freq_c[idx])
+        Ampl_restored_by_HCs[:, :, idx] = ampl_c[idx]
+
         Bgrd_restored_by_HCs[:, :, idx] = bgrd_c[idx]
-        #Grad_restored_by_HCs[:, :, idx] = bgrd_c[idx] + grdX_c[idx] * (xx - xc) + grdY_c[idx] * (yy - yc)
+        Grad_restored_by_HCs[:, :, idx] = grdX_c[idx] * (xx - xc) + grdY_c[idx] * (yy - yc)
 
         #### Define RFs for HCs ###############################################
         receptive_field = np.exp(
@@ -200,12 +216,13 @@ def encode_image(optimized_x, image_sqroot):
     for i in range(NGHs):
         receptive_fields[:, :, i] /= summ
 
-    # image_restored_by_HCs = Bgrd_restored_by_HCs + np.cos(Phi_restored_by_HCs) * Ampl_restored_by_HCs
-    #
+    image_restored_by_HCs = Bgrd_restored_by_HCs + Grad_restored_by_HCs + np.cos(Phi_restored_by_HCs) * Ampl_restored_by_HCs * WfreqComponent
+
     # image_restored_Bg = np.sum(Bgrd_restored_by_HCs * receptive_fields, axis=2)
     # image_restored_Gr = np.sum(Grad_restored_by_HCs * receptive_fields, axis=2)
     # image_restored = np.sum(image_restored_by_HCs * receptive_fields, axis=2)
-    image_restored = np.sum(Bgrd_restored_by_HCs * receptive_fields, axis=2)
+
+    image_restored = np.sum( image_restored_by_HCs * receptive_fields, axis=2)
 
     image_restored[image_restored > np.max(image_sqroot)] = np.max(image_sqroot)
     image_restored[image_restored < np.min(image_sqroot)] = np.min(image_sqroot)
@@ -213,11 +230,12 @@ def encode_image(optimized_x, image_sqroot):
     image_restored[-1, -1] = np.max(image_sqroot)
     image_restored[0, -1] = np.min(image_sqroot)
     image_restored = Transform_with_Sqr(image_restored)
-    return image_restored, xx, yy
+    return image_restored, xx, yy, hc_centers_x[isc], hc_centers_y[isc]
 
 def loss(optimized_x, image, image_sqroot):
-    image_restored, xx, yy = encode_image(optimized_x, image_sqroot)
-
+    image_restored, _, _, _, _ = encode_image(optimized_x, image_sqroot)
+    # image_restored[image_restored < 0] = 0
+    # image_restored[image_restored > 1] = 0
     ssim = structural_similarity(image, image_restored)
 
     return -ssim
@@ -272,36 +290,39 @@ def otim_main():
     image = np.transpose(image)
     image = image.astype(np.float64)
 
-    image = (image - 0.5 * np.min(image) - 0.5 * np.max(image)) / (np.max(image) - np.min(image)) * 2
+    #image = (image - 0.5 * np.min(image) - 0.5 * np.max(image)) / (np.max(image) - np.min(image)) * 2
+    image = image / np.max(image)
+
     image[199, 199] = np.max(image)
     image[0, 199] = np.min(image)
 
     image_sqroot = Transform_with_Root(image)
-    bounds = [[0.000001, 1], [0.000001, 1]]
-    res = differential_evolution(loss, bounds, args=(image, image_sqroot), maxiter=10, popsize=4, \
+    bounds = [[0.01, 0.4], [0.01, 0.4], [0.1, 1.2], [0.01, 15]]
+    res = differential_evolution(loss, bounds, args=(image, image_sqroot), maxiter=2, popsize=4, \
                                  mutation=0.2, recombination=0.7, disp=True)
     print (res.x)
-    sgmGauss, sgmRepField = res.x
+    sgmGauss, sgmRepField, WfreqComponent, CentFreqRicker = res.x
+    np.savetxt('./results/optimization/optim_x.txt', res.x.reshape(1, -1), header='sgmGauss, sgmRepField, WfreqComponent, CentFreqRickern', fmt='%10.5f', delimiter=',')
 
-    image_restored, xx, yy = encode_image([sgmGauss, sgmRepField], image_sqroot)
+    image_restored, xx, yy, hc_centers_x, hc_centers_y = encode_image([sgmGauss, sgmRepField, WfreqComponent, CentFreqRicker], image_sqroot)
+
+    for idx in range(hc_centers_x.size):
+        hc_centers_x[idx] = Transform_X_with_Sqr(hc_centers_x[idx], hc_centers_y[idx])
+        hc_centers_y[idx] = Transform_Y_with_Sqr(hc_centers_x[idx], hc_centers_y[idx])
+
 
     fig, axes = plt.subplots(ncols=2, figsize=(30, 15), sharex=True, sharey=True)
     axes[0].pcolor(xx, yy, image, cmap='gray', shading='auto')
     axes[1].pcolor(xx, yy, image_restored, cmap='gray', shading='auto')
-    # axes[2].pcolor(xx,yy, receptive_fields[:, :, 8], cmap='gray', shading='auto')
 
-    # axes[0].scatter(hc_centers_x, hc_centers_y, s=150, color="red")
-    # axes[1].scatter(hc_centers_x, hc_centers_y, s=150, color="red")
-    # for i in isc:
-    #     xxx_[i] = Transform_X_with_Sqr(hc_centers_x[i], hc_centers_y[i])
-    #     yyy_[i] = Transform_Y_with_Sqr(hc_centers_x[i], hc_centers_y[i])
-    # # axes[1].scatter(hc_centers_x[isc], hc_centers_y[isc], s=100, color="green")
-    # axes[0].scatter(xxx_[isc], yyy_[isc], s=5, color="green")
-    # axes[1].scatter(xxx_[isc], yyy_[isc], s=2, color="green")
-    # axes[1].hlines([0, ], xmin=-1, xmax=1, color="blue")
-    # axes[1].vlines([0, ], ymin=-1, ymax=1, color="blue")
-    # axes[0].hlines([0, ], xmin=-1, xmax=1, color="blue")
-    # axes[0].vlines([0, ], ymin=-1, ymax=1, color="blue")
+    axes[0].scatter(hc_centers_x, hc_centers_y, s=5, color="green")
+    axes[1].scatter(hc_centers_x, hc_centers_y, s=5, color="green")
+
+    axes[1].hlines([0, ], xmin=-1, xmax=1, color="blue")
+    axes[1].vlines([0, ], ymin=-1, ymax=1, color="blue")
+    axes[0].hlines([0, ], xmin=-1, xmax=1, color="blue")
+    axes[0].vlines([0, ], ymin=-1, ymax=1, color="blue")
+
     fig.savefig("./results/aaa.png")
     plt.show()
 
