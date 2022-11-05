@@ -56,6 +56,7 @@ for an_idx, angle in enumerate(np.linspace(0, np.pi, 5, endpoint=False)):
     xx_rot = xx * np.cos(angle) - yy * np.sin(angle)
     yy_rot = xx * np.sin(angle) + yy * np.cos(angle)
     hat = hat_func(xx_rot, yy_rot, 0.5*sgmGauss, sgmGauss)
+    hat = hat - np.mean(hat)
     hat = hat / np.sqrt(np.sum(hat**2))
 
     image_filtered = convolve(image, hat)
@@ -64,4 +65,5 @@ for an_idx, angle in enumerate(np.linspace(0, np.pi, 5, endpoint=False)):
     axes[an_idx, 1].imshow(hat, cmap='gray')
     axes[an_idx, 2].imshow(image_filtered, cmap='gray')
 
+fig.savefig("../results/test_.png")
 plt.show()
